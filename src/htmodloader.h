@@ -19,7 +19,7 @@
 #define HTML_VERSION 10000
 #define HTML_VERSION_NAME "1.0.0"
 
-#define HTMLAPI __fastcall
+#define HTMLAPI __stdcall
 
 // Includes.
 #include <windows.h>
@@ -78,10 +78,10 @@ void HTGetGameExeFolder(
   char *result, u64 maxLen);
 
 /**
- * Get the folder where the mod loader dll is located. In most cases, the same
- * as HTGetGameExeFolder()'s result.
+ * Get the folder where the mods is located. In most cases, the same as add
+ * "\\htmods" to HTGetGameExeFolder()'s result.
  */
-void HTGetGameExeFolder(
+void HTGetModFolder(
   char *result, u64 maxLen);
 
 // ----------------------------------------------------------------------------
@@ -204,14 +204,14 @@ typedef void (HTMLAPI *PFN_HTDisableHookEx)(
 /**
  * Allocate a sized memory block.
  */
-void *HTMemAlloc(
+HTMLAPI void *HTMemAlloc(
   u64 size);
 
 /**
  * Allocate space for an array of `count` objects, each of `size` bytes.
  * Different from calloc(), HTMemNew won't initialize the memory block.
  */
-void *HTMemNew(
+HTMLAPI void *HTMemNew(
   u64 count, u64 size);
 
 /**
@@ -220,28 +220,68 @@ void *HTMemNew(
  * 
  * Mod needs to reset pointer variables to prevent dangling pointers.
  */
-HTStatus HTMemFree(
+HTMLAPI HTStatus HTMemFree(
   void *pointer);
 
 // ----------------------------------------------------------------------------
 // [SECTION] HTML mod communication APIs.
 // ----------------------------------------------------------------------------
 
+// Event callback.
+typedef void (HTMLAPI *PFN_HTEventCallback)(
+  const void *data);
+
+// Handle.
+typedef void *HTHandle;
+
 /**
  * Get the address of a registered function.
  */
-PFN_HTVoidFunction HTGetProcAddr(
+HTMLAPI PFN_HTVoidFunction HTGetProcAddr(
   HMODULE hModule, const char *name);
 
 /**
+ * Get a handle for the mod manifest.
+ */
+HTMLAPI HTHandle HTGetModManifest(
+  HMODULE hModule);
+
+/**
  * Register a function with name. Registered function can be called by other
- * mods with HTGetProcAddr().
+ * mods with HTGetProcAddr(). If the same name is passed in and called more
+ * than once, the value of the last call will be saved.
  * 
  * It is recommended to use namespace strings like `namespace:foobar` when
  * registering functions.
  */
-HTStatus HTCommRegFunction(
+HTMLAPI HTStatus HTCommRegFunction(
   HMODULE hModule, const char *name, PFN_HTVoidFunction func);
+
+/**
+ * Register an event listener with given event name.
+ * 
+ * The callback function should not modify the content pointed to by the
+ * `data` pointer. The callback function must assume that the data pointer
+ * is only valid before the function returns.
+ */
+HTMLAPI HTStatus HTCommOnEvent(
+  const char *name, PFN_HTEventCallback callback);
+
+#define HTCommAddEventListener HTCommOnEvent
+
+/**
+ * Remove a registered event listener.
+ */
+HTMLAPI HTStatus HTCommOffEvent(
+  const char *name, PFN_HTEventCallback callback);
+
+#define HTCommRemoveEventListener HTCommOffEvent
+  
+/**
+ * Trigger an event with specified data.
+ */
+HTMLAPI HTStatus HTCommEmitEvent(
+  const char *name, void *data);
 
 #ifdef __cplusplus
 }

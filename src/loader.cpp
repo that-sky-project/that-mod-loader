@@ -5,8 +5,7 @@
 #include "globals.h"
 #include "aliases.h"
 #include "htmodloader.h"
-
-std::unordered_map<std::string, ModManifest> gModDataLoader;
+#include "moddata.h"
 
 static inline i32 fileExists(const wchar_t *path) {
   DWORD attr = GetFileAttributesW(path);
@@ -203,21 +202,42 @@ static void scanMods() {
     if (!fileExists(manifest.paths.dll.data()))
       continue;
     
+    // When scanning mods, the mod data won't be accessed by multiple threads,
+    // so we don't need to protect it.
     gModDataLoader[manifest.meta.packageName] = manifest;
 
     LOGI("Scanned mod %s.\n", manifest.modName.data());
   } while (FindNextFileW(hFindFile, &findData));
 }
 
-static void loadMods() {
-  ModRuntime runtime;
-  for (auto it = gModDataLoader.begin(); it != gModDataLoader.end(); ++it) {
-    runtime.handle = LoadLibraryW(it->second.paths.dll.data());
-    if (runtime.handle)
-      LOGI("Loaded mod %s.\n", it->second.modName.data());
+/**
+ * Load all avaliable mods into the game process.
+ */
+static void expandMods() {
+  HMODULE hMod;
+  ModRuntime *runtimeData;
+
+  for (auto it = gModDataLoader.begin(); it != gModDataLoader.end(); it++) {
+    const char *modName = it->second.modName.data();
+
+    // Load library.
+    hMod = LoadLibraryW(it->second.paths.dll.data());
+    if (hMod)
+      LOGI("Loaded mod %s.\n", modName);
     else
-      LOGI("Load mod %s failed.\n", it->second.modName.data());
-    gModDataLoader[it->first].runtime = runtime;
+      LOGI("Load mod %s failed: No such file.\n", modName);
+  
+    // Save runtime data.
+    {
+      // While the mods are loading one by one, subthreads created by the mods
+      // may access mod data structs at the same time, so we need a global
+      // lock.
+      std::lock_guard<std::mutex> lock(gModDataLock);
+      runtimeData = &gModDataRuntime[hMod];
+      runtimeData->handle = hMod;
+      runtimeData->manifest = &(it->second);
+      it->second.runtime = runtimeData;
+    }
   }
 }
 
@@ -234,7 +254,7 @@ HTStatus HTLoadMods() {
   }
 
   scanMods();
-  loadMods();
+  expandMods();
 
   return HT_SUCCESS;
 }

@@ -9,7 +9,7 @@
 #include "ui/console.h"
 
 #include "globals.h"
-#include "loader.h"
+#include "moddata.h"
 
 static bool gShowMainMenu = true
   , gFirstFrame = true;
@@ -59,7 +59,7 @@ static void HTMenuModList() {
   }
   ImGui::PopStyleVar(2);
   ImGui::PopID();
-  
+
   ImGui::EndChild();
 }
 
