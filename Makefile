@@ -38,7 +38,7 @@ LFLAGS += -L./libraries/vulkan/Lib -lvulkan-1
 CFLAGS += -I./libraries/cJSON
 LFLAGS += -L./libraries/cJSON -lcjson
 # Macros.
-#CFLAGS += -DNDEBUG
+CFLAGS += -DNDEBUG
 
 vpath %.c $(SRC_DIRS)
 vpath %.cpp $(SRC_DIRS)
@@ -47,7 +47,7 @@ vpath %.cpp $(SRC_DIRS)
 
 $(BIN_TARGET): $(C_OBJ) $(CPP_OBJ)
 	@echo Linking ...
-	@$(CXX) --std=c++11 $(CFLAGS) $^ -shared -o $@ $(LFLAGS)
+	@$(CXX) --std=c++17 $(CFLAGS) $^ -shared -o $@ $(LFLAGS)
 	@echo Done.
 
 $(DIST_DIR)/%.o: %.c

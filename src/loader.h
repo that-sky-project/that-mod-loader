@@ -1,7 +1,7 @@
 #ifndef __LOADER_H__
 #define __LOADER_H__
 
-#include "htmodloader.h"
+#include "includes/htmodloader.h"
 
 extern "C" {
   HTStatus HTLoadMods();

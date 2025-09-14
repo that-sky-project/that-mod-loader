@@ -22,7 +22,7 @@ Use HTML to execute code before the game does.
 ### How to create a mod?
 1. Download the latest HTML SDK zip in [releases](https://www.github.com/HTMonkeyG/HTML-Sky/releases/latest).
 2. Write your own dll codes with HTML APIs and internal ImGui. You should include the provided ImGui headers by the SDK.
-3. Compile and link `htmodloader.lib` with MinGW. HTML is compiled under MinGW, and it may cause problems due to different ABIs if compiling with MSVC. The mod should use c11 and c++11 standard.
+3. Compile and link `htmodloader.lib` with MinGW. HTML is compiled under MinGW, and it may cause problems due to different ABIs if compiling with MSVC. The mod should use c11 and c++17 standard.
 4. Write `manifest.json` for the mod.
 ```json
 {

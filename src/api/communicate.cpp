@@ -3,12 +3,12 @@
 // ----------------------------------------------------------------------------
 #include <string>
 #include <unordered_map>
-#include <mutex>
+#include <shared_mutex>
 #include <unordered_set>
 #include "moddata.h"
-#include "htmodloader.h"
+#include "includes/htmodloader.h"
 
-static std::mutex gMutex;
+static std::shared_mutex gMutex;
 static std::unordered_map<std::string, std::unordered_set<PFN_HTEventCallback>> gEventCallbacks;
 
 HTMLAPI PFN_HTVoidFunction HTGetProcAddr(
@@ -69,7 +69,7 @@ HTMLAPI HTStatus HTCommOnEvent(
   const char *name,
   PFN_HTEventCallback callback
 ) {
-  std::lock_guard<std::mutex> lock(gMutex);
+  std::unique_lock<std::shared_mutex> lock(gMutex);
 
   if (!name || !callback)
     return HT_FAIL;
@@ -83,27 +83,29 @@ HTMLAPI HTStatus HTCommOffEvent(
   const char *name,
   PFN_HTEventCallback callback
 ) {
-  std::lock_guard<std::mutex> lock(gMutex);
+  std::unique_lock<std::shared_mutex> lock(gMutex);
 
   if (!name || !callback)
     return HT_FAIL;
   
   auto it = gEventCallbacks.find(name);
-  if (it != gEventCallbacks.end()) {
-    it->second.erase(callback);
+  if (it == gEventCallbacks.end())
+    return HT_FAIL;
+
+  it->second.erase(callback);
   
-    if (it->second.empty())
-      gEventCallbacks.erase(it);
-  }
+  if (it->second.empty())
+    gEventCallbacks.erase(it);
 
   return HT_SUCCESS;
 }
 
 HTMLAPI HTStatus HTCommEmitEvent(
   const char *name,
+  void *reserved,
   void *data
 ) {
-  std::lock_guard<std::mutex> lock(gMutex);
+  std::shared_lock<std::shared_mutex> lock(gMutex);
 
   if (!name)
     return HT_FAIL;
@@ -114,7 +116,7 @@ HTMLAPI HTStatus HTCommEmitEvent(
 
   auto set = &it->second;
   for (auto it = set->begin(); it != set->end(); it++) {
-    PFN_HTEventCallback cb = (*it);
+    PFN_HTEventCallback cb = *it;
     if (cb)
       cb(data);
   }

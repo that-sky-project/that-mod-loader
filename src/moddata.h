@@ -3,8 +3,8 @@
 #include <map>
 #include <vector>
 #include <mutex>
-#include "aliases.h"
-#include "htmodloader.h"
+#include "includes/aliases.h"
+#include "includes/htmodloader.h"
 
 struct ModPaths {
   // The folder contains manifest.json.
@@ -44,10 +44,17 @@ struct ModManifest {
   ModRuntime *runtime;
 };
 
+struct ModInternalFunctions {
+  PFN_HTVoidFunction pfn_HTModOnInit;
+  PFN_HTVoidFunction pfn_HTModOnEnable;
+  PFN_HTVoidFunction pfn_HTModRenderGui;
+};
+
 // Mod runtime data. This struct is associated with mod handle.
 struct ModRuntime {
   HMODULE handle;
   ModManifest *manifest;
+  ModInternalFunctions loaderFunc;
   // Shared functions.
   std::map<std::string, PFN_HTVoidFunction> functions;
 };

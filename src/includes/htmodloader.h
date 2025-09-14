@@ -23,14 +23,14 @@
 
 // Includes.
 #include <windows.h>
-#include "aliases.h"
+#include "includes/aliases.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 // ----------------------------------------------------------------------------
-// [SECTION] HTML metadata APIs.
+// [SECTION] HTML basic APIs and type declarations.
 // ----------------------------------------------------------------------------
 
 // Whether the execution was successful or not.
@@ -64,6 +64,18 @@ typedef struct {
 // Function prototype.
 typedef void *(HTMLAPI *PFN_HTVoidFunction)(
   void);
+
+/* Mod exported function prototypes. */
+
+// Gui renderer.
+typedef void (HTMLAPI *PFN_HTModRenderGui)(
+  f32 timeElapsed, void *reserved);
+// Initialize event
+typedef void (HTMLAPI *PFN_HTModOnInit)(
+  void *reserved);
+// Mod enable event
+typedef void (HTMLAPI *PFN_HTModOnEnable)(
+  void *reserved);
 
 /**
  * Get game status object.
@@ -262,7 +274,7 @@ HTMLAPI HTStatus HTCommRegFunction(
  * 
  * The callback function should not modify the content pointed to by the
  * `data` pointer. The callback function must assume that the data pointer
- * is only valid before the function returns.
+ * is only valid before the callback function returns.
  */
 HTMLAPI HTStatus HTCommOnEvent(
   const char *name, PFN_HTEventCallback callback);
@@ -281,7 +293,11 @@ HTMLAPI HTStatus HTCommOffEvent(
  * Trigger an event with specified data.
  */
 HTMLAPI HTStatus HTCommEmitEvent(
-  const char *name, void *data);
+  const char *name, void *reserved, void *data);
+
+// ----------------------------------------------------------------------------
+// [SECTION] HTML hotkey register APIs.
+// ----------------------------------------------------------------------------
 
 #ifdef __cplusplus
 }

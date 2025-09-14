@@ -2,7 +2,7 @@
 #include "imgui.h"
 
 #include "input.h"
-#include "globals.h"
+#include "utils/globals.h"
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(
   HWND hWnd,

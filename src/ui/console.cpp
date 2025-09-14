@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include "imgui.h"
 
-#include "aliases.h"
+#include "includes/aliases.h"
 #include "ui/console.h"
 
 static ImVector<char *> gLines;

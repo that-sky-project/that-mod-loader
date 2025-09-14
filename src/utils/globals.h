@@ -2,8 +2,8 @@
 #define __GLOBALS_H__
 
 #include <windows.h>
-#include "aliases.h"
-#include "htmodloader.h"
+#include "includes/aliases.h"
+#include "includes/htmodloader.h"
 
 #ifdef __cplusplus
 extern "C" {

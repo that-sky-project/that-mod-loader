@@ -4,9 +4,9 @@
 #include <stdlib.h>
 #include <unordered_set>
 #include <mutex>
-#include "aliases.h"
-#include "globals.h"
-#include "htmodloader.h"
+#include "includes/aliases.h"
+#include "utils/globals.h"
+#include "includes/htmodloader.h"
 
 static std::mutex gMutex;
 // Stores pointers to all allocated mem blocks.

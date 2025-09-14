@@ -6,7 +6,7 @@
 #include <mutex>
 #include "MinHook.h"
 
-#include "htmodloader.h"
+#include "includes/htmodloader.h"
 
 static std::mutex gMutex;
 

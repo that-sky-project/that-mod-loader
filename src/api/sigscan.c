@@ -3,8 +3,8 @@
 // ----------------------------------------------------------------------------
 #include <windows.h>
 
-#include "aliases.h"
-#include "htmodloader.h"
+#include "includes/aliases.h"
+#include "includes/htmodloader.h"
 
 /**
  * Convert signature string to byte pattern.

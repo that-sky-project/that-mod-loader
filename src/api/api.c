@@ -1,7 +1,7 @@
 // ----------------------------------------------------------------------------
 // Basic APIs of HT's Mod Loader.
 // ----------------------------------------------------------------------------
-#include "globals.h"
+#include "utils/globals.h"
 
 void HTGetGameStatus(HTGameStatus *status) {
   if (status)

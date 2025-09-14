@@ -8,7 +8,7 @@
 #include "ui/gui.h"
 #include "ui/console.h"
 
-#include "globals.h"
+#include "utils/globals.h"
 #include "moddata.h"
 
 static bool gShowMainMenu = true
@@ -107,6 +107,7 @@ void HTUpdateGUI() {
   style.ScrollbarRounding = 0.0f;
   style.WindowTitleAlign.x = 0.5f;
   style.WindowTitleAlign.y = 0.5f;
+  ImGuiIO &io = ImGui::GetIO();
   ImGuiWindowFlags windowFlags = ImGuiWindowFlags_None;
   if (gFirstFrame) {
     // Resize window on the first frame.
@@ -134,6 +135,12 @@ void HTUpdateGUI() {
       ImGui::EndTabItem();
     }
     ImGui::EndTabBar();
+  }
+
+  for (auto it = gModDataRuntime.begin(); it != gModDataRuntime.end(); it++) {
+    PFN_HTModRenderGui guiRenderer = (PFN_HTModRenderGui)it->second.loaderFunc.pfn_HTModRenderGui;
+    if (guiRenderer)
+      guiRenderer(io.DeltaTime, nullptr);
   }
   
   ImGui::End();

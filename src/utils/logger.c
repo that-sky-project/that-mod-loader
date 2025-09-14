@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-#include "aliases.h"
+#include "includes/aliases.h"
 
 static FILE *gLogFile = NULL;
 

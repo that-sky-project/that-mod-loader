@@ -215,7 +215,13 @@ BOOL APIENTRY DllMain(
       return TRUE;
     gGameStatus.pid = GetCurrentProcessId();
 
+#ifdef NDEBUG
+    // No log file and console.
     HTInitLogger(nullptr, 0);
+#else
+    // Create console.
+    HTInitLogger(nullptr, 1);
+#endif
     initPaths(hModule);
 
     LOGI("HTML attatched.\n");

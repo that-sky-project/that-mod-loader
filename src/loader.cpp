@@ -1,10 +1,10 @@
 #include <cmath>
 #include "cJSON.h"
-#include "logger.h"
+#include "utils/logger.h"
 #include "loader.h"
-#include "globals.h"
-#include "aliases.h"
-#include "htmodloader.h"
+#include "utils/globals.h"
+#include "includes/aliases.h"
+#include "includes/htmodloader.h"
 #include "moddata.h"
 
 static inline i32 fileExists(const wchar_t *path) {
@@ -211,6 +211,21 @@ static void scanMods() {
 }
 
 /**
+ * Get all exported functions for the loader.
+ */
+static void getModExportedFunctions(
+  ModRuntime *runtimeData
+) {
+  HMODULE hMod = runtimeData->handle;
+  runtimeData->loaderFunc.pfn_HTModRenderGui = (PFN_HTVoidFunction)GetProcAddress(
+    hMod, "HTModRenderGui");
+  runtimeData->loaderFunc.pfn_HTModOnInit = (PFN_HTVoidFunction)GetProcAddress(
+    hMod, "HTModOnInit");
+  runtimeData->loaderFunc.pfn_HTModOnEnable = (PFN_HTVoidFunction)GetProcAddress(
+    hMod, "HTModOnEnable");
+}
+
+/**
  * Load all avaliable mods into the game process.
  */
 static void expandMods() {
@@ -236,6 +251,7 @@ static void expandMods() {
       runtimeData = &gModDataRuntime[hMod];
       runtimeData->handle = hMod;
       runtimeData->manifest = &(it->second);
+      getModExportedFunctions(runtimeData);
       it->second.runtime = runtimeData;
     }
   }
