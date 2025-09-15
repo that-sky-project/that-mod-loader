@@ -93,7 +93,7 @@ HTMLAPIATTR HTStatus HTMLAPI HTCommOffEvent(
     return HT_FAIL;
 
   it->second.erase(callback);
-  
+
   if (it->second.empty())
     gEventCallbacks.erase(it);
 
@@ -105,17 +105,25 @@ HTMLAPIATTR HTStatus HTMLAPI HTCommEmitEvent(
   void *reserved,
   void *data
 ) {
-  std::shared_lock<std::shared_mutex> lock(gMutex);
+  std::vector<PFN_HTEventCallback> localCallbacks;
 
   if (!name)
     return HT_FAIL;
   
-  auto it = gEventCallbacks.find(name);
-  if (it == gEventCallbacks.end())
-    return HT_FAIL;
+  {
+    std::shared_lock<std::shared_mutex> lock(gMutex);
 
-  auto set = &it->second;
-  for (auto it = set->begin(); it != set->end(); it++) {
+    auto it = gEventCallbacks.find(name);
+    if (it == gEventCallbacks.end())
+      return HT_FAIL;
+    if (it->second.empty())
+      return HT_SUCCESS;
+
+    // Save a local copy of the callbacks to avoid deadlock.
+    localCallbacks.assign(it->second.begin(), it->second.end());
+  }
+
+  for (auto it = localCallbacks.begin(); it != localCallbacks.end(); it++) {
     PFN_HTEventCallback cb = *it;
     if (cb)
       cb(data);
