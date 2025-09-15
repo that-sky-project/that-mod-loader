@@ -75,29 +75,29 @@ typedef void *(HTMLAPI *PFN_HTVoidFunction)(
 typedef void (HTMLAPI *PFN_HTModRenderGui)(
   f32 timeElapsed, void *reserved);
 // Initialize event
-typedef void (HTMLAPI *PFN_HTModOnInit)(
+typedef HTStatus (HTMLAPI *PFN_HTModOnInit)(
   void *reserved);
 // Mod enable event
-typedef void (HTMLAPI *PFN_HTModOnEnable)(
+typedef HTStatus (HTMLAPI *PFN_HTModOnEnable)(
   void *reserved);
 
 /**
  * Get game status object.
  */
-HTMLAPIATTR void HTGetGameStatus(
+HTMLAPIATTR void HTMLAPI HTGetGameStatus(
   HTGameStatus *status);
 
 /**
  * Get the folder where the game executable file is located.
  */
-HTMLAPIATTR void HTGetGameExeFolder(
+HTMLAPIATTR void HTMLAPI HTGetGameExeFolder(
   char *result, u64 maxLen);
 
 /**
  * Get the folder where the mods is located. In most cases, the same as add
  * "\\htmods" to HTGetGameExeFolder()'s result.
  */
-HTMLAPIATTR void HTGetModFolder(
+HTMLAPIATTR void HTMLAPI HTGetModFolder(
   char *result, u64 maxLen);
 
 // ----------------------------------------------------------------------------
@@ -250,6 +250,8 @@ typedef void (HTMLAPI *PFN_HTEventCallback)(
 // Handle.
 typedef void *HTHandle;
 
+#define HT_INVALID_HANDLE NULL
+
 /**
  * Get the address of a registered function.
  */
@@ -312,6 +314,20 @@ typedef struct {
 // Hotkey callback.
 typedef void (HTMLAPI *PFN_HTHotkeyCallback)(
   const HTKeyEvent *event);
+
+/**
+ * Register a single key bind.
+ */
+HTMLAPIATTR HTHandle HTMLAPI HTHotkeyRegister(
+  HMODULE hModule,
+  const char *name,
+  HTKeyCode defaultCode);
+
+/**
+ * Check if a registered shortcut key has been pressed.
+ */
+HTMLAPIATTR u32 HTMLAPI HTHotkeyPressed(
+  HTHandle hKey);
 
 #ifdef __cplusplus
 }

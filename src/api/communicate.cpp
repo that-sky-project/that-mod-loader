@@ -11,7 +11,7 @@
 static std::shared_mutex gMutex;
 static std::unordered_map<std::string, std::unordered_set<PFN_HTEventCallback>> gEventCallbacks;
 
-HTMLAPI PFN_HTVoidFunction HTGetProcAddr(
+HTMLAPIATTR PFN_HTVoidFunction HTMLAPI HTGetProcAddr(
   HMODULE hModule,
   const char *name
 ) {
@@ -31,22 +31,22 @@ HTMLAPI PFN_HTVoidFunction HTGetProcAddr(
   return it->second;
 }
 
-HTMLAPI HTHandle HTGetModManifest(
+HTMLAPIATTR HTHandle HTMLAPI HTGetModManifest(
   HMODULE hModule
 ) {
   std::lock_guard<std::mutex> lock(gModDataLock);
 
   if (!hModule)
-    return nullptr;
+    return HT_INVALID_HANDLE;
 
   ModRuntime *rt = getModRuntime(hModule);
   if (!rt)
-    return nullptr;
+    return HT_INVALID_HANDLE;
 
   return (HTHandle)rt->manifest;
 }
 
-HTMLAPI HTStatus HTCommRegFunction(
+HTMLAPIATTR HTStatus HTMLAPI HTCommRegFunction(
   HMODULE hModule,
   const char *name,
   PFN_HTVoidFunction func
@@ -65,7 +65,7 @@ HTMLAPI HTStatus HTCommRegFunction(
   return HT_SUCCESS;
 }
 
-HTMLAPI HTStatus HTCommOnEvent(
+HTMLAPIATTR HTStatus HTMLAPI HTCommOnEvent(
   const char *name,
   PFN_HTEventCallback callback
 ) {
@@ -79,7 +79,7 @@ HTMLAPI HTStatus HTCommOnEvent(
   return HT_SUCCESS;
 }
 
-HTMLAPI HTStatus HTCommOffEvent(
+HTMLAPIATTR HTStatus HTMLAPI HTCommOffEvent(
   const char *name,
   PFN_HTEventCallback callback
 ) {
@@ -100,7 +100,7 @@ HTMLAPI HTStatus HTCommOffEvent(
   return HT_SUCCESS;
 }
 
-HTMLAPI HTStatus HTCommEmitEvent(
+HTMLAPIATTR HTStatus HTMLAPI HTCommEmitEvent(
   const char *name,
   void *reserved,
   void *data

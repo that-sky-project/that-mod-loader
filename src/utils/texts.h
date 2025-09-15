@@ -16,3 +16,7 @@
     "}\n"\
   "}\n"\
 "}"
+
+#define HTTexts_ModLoaderPackageName "htmodloader"
+#define HTTexts_ModLoaderName "HT' Mod Loader"
+#define HTTexts_ModLoaderDesc "HTML basic apis."

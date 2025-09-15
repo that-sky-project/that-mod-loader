@@ -8,6 +8,7 @@
 #include "includes/htmodloader.h"
 #include "utils/logger.h"
 #include "utils/globals.h"
+#include "utils/texts.h"
 #include "loader.h"
 #include "moddata.h"
 
@@ -221,16 +222,44 @@ static void getModExportedFunctions(
   ModRuntime *runtimeData
 ) {
   HMODULE hMod = runtimeData->handle;
-  runtimeData->loaderFunc.pfn_HTModRenderGui = (PFN_HTVoidFunction)GetProcAddress(
+  runtimeData->loaderFunc.pfn_HTModRenderGui = (PFN_HTModRenderGui)GetProcAddress(
     hMod, "HTModRenderGui");
-  runtimeData->loaderFunc.pfn_HTModOnInit = (PFN_HTVoidFunction)GetProcAddress(
+  runtimeData->loaderFunc.pfn_HTModOnInit = (PFN_HTModOnInit)GetProcAddress(
     hMod, "HTModOnInit");
-  runtimeData->loaderFunc.pfn_HTModOnEnable = (PFN_HTVoidFunction)GetProcAddress(
+  runtimeData->loaderFunc.pfn_HTModOnEnable = (PFN_HTModOnEnable)GetProcAddress(
     hMod, "HTModOnEnable");
 }
 
 /**
- * Load all avaliable mods into the game process.
+ * Register the loader itself as a single mod. The package name of the loader
+ * is "htmodloader", version is HTML_VERSION_NAME.
+ */
+static void bootstrap() {
+  std::lock_guard<std::mutex> lock(gModDataLock);
+  ModManifest *manifestSelf = &gModDataLoader[HTTexts_ModLoaderPackageName];
+  ModRuntime *runtimeSelf = &gModDataRuntime[gModLoaderHandle];
+
+  // Set manifest data.
+  manifestSelf->meta.packageName = HTTexts_ModLoaderPackageName;
+  parseVersionNumber(
+    HTML_VERSION_NAME,
+    manifestSelf->meta.version);
+  manifestSelf->author = "HTMonkeyG";
+  manifestSelf->description = HTTexts_ModLoaderDesc;
+  manifestSelf->gameEditionFlags = 3;
+  manifestSelf->modName = HTTexts_ModLoaderName;
+  manifestSelf->runtime = runtimeSelf;
+
+  // Set runtime data.
+  runtimeSelf->handle = gModLoaderHandle;
+  runtimeSelf->manifest = manifestSelf;
+  runtimeSelf->loaderFunc.pfn_HTModOnEnable = nullptr;
+  runtimeSelf->loaderFunc.pfn_HTModOnInit = nullptr;
+  runtimeSelf->loaderFunc.pfn_HTModRenderGui = nullptr;
+}
+
+/**
+ * Load all avaliable mods into the game process and register mod runtime data.
  */
 static void expandMods() {
   HMODULE hMod;
@@ -239,7 +268,7 @@ static void expandMods() {
   for (auto it = gModDataLoader.begin(); it != gModDataLoader.end(); it++) {
     const char *modName = it->second.modName.data();
 
-    if (it->second.meta.packageName == "htmodloader")
+    if (it->second.meta.packageName == HTTexts_ModLoaderPackageName)
       // The data of mod loader itself is set in bootstrap(), so we don't need
       // to load it again.
       continue;
@@ -267,31 +296,17 @@ static void expandMods() {
 }
 
 /**
- * Register the loader itself as a single mod. The package name of the loader
- * is "htmodloader", version is HTML_VERSION_NAME.
+ * Call the HTModOnInit() functions exported by the mods one by one. Mods
+ * can only use HTAPI within and after the function is called.
  */
-static void bootstrap() {
-  std::lock_guard<std::mutex> lock(gModDataLock);
-  ModManifest *manifestSelf = &gModDataLoader["htmodloader"];
-  ModRuntime *runtimeSelf = &gModDataRuntime[gModLoaderHandle];
+void initMods() {
+  PFN_HTModOnInit fn;
 
-  // Set manifest data.
-  manifestSelf->meta.packageName = "htmodloader";
-  parseVersionNumber(
-    HTML_VERSION_NAME,
-    manifestSelf->meta.version);
-  manifestSelf->author = "HTMonkeyG";
-  manifestSelf->description = "HT's Mod Loader.";
-  manifestSelf->gameEditionFlags = 3;
-  manifestSelf->modName = "HT's Mod Loader";
-  manifestSelf->runtime = runtimeSelf;
-
-  // Set runtime data.
-  runtimeSelf->handle = gModLoaderHandle;
-  runtimeSelf->manifest = manifestSelf;
-  runtimeSelf->loaderFunc.pfn_HTModOnEnable = nullptr;
-  runtimeSelf->loaderFunc.pfn_HTModOnInit = nullptr;
-  runtimeSelf->loaderFunc.pfn_HTModRenderGui = nullptr;
+  for (auto it = gModDataRuntime.begin(); it != gModDataRuntime.end(); it++) {
+    fn = it->second.loaderFunc.pfn_HTModOnInit;
+    if (fn)
+      (void)fn(nullptr);
+  }
 }
 
 HTStatus HTLoadMods() {
@@ -309,6 +324,7 @@ HTStatus HTLoadMods() {
   scanMods();
   bootstrap();
   expandMods();
+  initMods();
 
   return HT_SUCCESS;
 }

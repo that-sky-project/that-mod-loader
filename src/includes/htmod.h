@@ -19,9 +19,9 @@ extern "C" {
  */
 __declspec(dllexport) void HTMLAPI HTModRenderGui(
   f32 timeElapesed, void *reserved);
-__declspec(dllexport) void HTMLAPI HTModOnInit(
+__declspec(dllexport) HTStatus HTMLAPI HTModOnInit(
   void *reserved);
-__declspec(dllexport) void HTMLAPI HTModOnEnable(
+__declspec(dllexport) HTStatus HTMLAPI HTModOnEnable(
   void *reserved);
 
 #ifdef __cplusplus

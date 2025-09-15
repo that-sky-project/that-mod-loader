@@ -184,7 +184,7 @@ static void *sigScanFF15(const char *moduleName, const char *sig, i32 offset) {
   return (void *)result;
 }
 
-HTMLAPI void *HTSigScan(const HTSignature *signature) {
+HTMLAPIATTR void *HTMLAPI HTSigScan(const HTSignature *signature) {
   if (!signature)
     return NULL;
   
@@ -198,7 +198,7 @@ HTMLAPI void *HTSigScan(const HTSignature *signature) {
     return NULL;
 }
 
-HTMLAPI void *HTSigScanFunc(
+HTMLAPIATTR void *HTMLAPI HTSigScanFunc(
   const HTSignature *signature,
   HTHookFunction *func
 ) {
@@ -208,7 +208,7 @@ HTMLAPI void *HTSigScanFunc(
   return func->fn;
 }
 
-HTMLAPI HTStatus HTSigScanFuncEx(
+HTMLAPIATTR HTStatus HTMLAPI HTSigScanFuncEx(
   const HTSignature **signature,
   HTHookFunction **func,
   u32 size

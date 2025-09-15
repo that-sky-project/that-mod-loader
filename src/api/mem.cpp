@@ -12,7 +12,7 @@ static std::mutex gMutex;
 // Stores pointers to all allocated mem blocks.
 static std::unordered_set<void *> gAllocated;
 
-void *HTMemAlloc(u64 size) {
+HTMLAPIATTR void *HTMLAPI HTMemAlloc(u64 size) {
   std::lock_guard<std::mutex> lock(gMutex);
   void *result = HeapAlloc(gHeap, 0, size);
   if (result)
@@ -20,7 +20,7 @@ void *HTMemAlloc(u64 size) {
   return result;
 }
 
-void *HTMemNew(u64 count, u64 size) {
+HTMLAPIATTR void *HTMLAPI HTMemNew(u64 count, u64 size) {
   std::lock_guard<std::mutex> lock(gMutex);
   void *result = HeapAlloc(gHeap, 0, count * size);
   if (result)
@@ -28,7 +28,7 @@ void *HTMemNew(u64 count, u64 size) {
   return result;
 }
 
-HTStatus HTMemFree(void *pointer) {
+HTMLAPIATTR HTStatus HTMLAPI HTMemFree(void *pointer) {
   std::lock_guard<std::mutex> lock(gMutex);
   auto it = gAllocated.find(pointer);
 

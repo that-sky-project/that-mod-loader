@@ -3,18 +3,18 @@
 // ----------------------------------------------------------------------------
 #include "utils/globals.h"
 
-void HTGetGameStatus(HTGameStatus *status) {
+HTMLAPIATTR void HTMLAPI HTGetGameStatus(HTGameStatus *status) {
   if (status)
     *status = gGameStatus;
 }
 
-void HTGetGameExeFolder(char *result, u64 maxLen) {
+HTMLAPIATTR void HTMLAPI HTGetGameExeFolder(char *result, u64 maxLen) {
   if (!result)
     return;
   strcpy_s(result, maxLen, gPathGameExe);
 }
 
-void HTGetModFolder(char *result, u64 maxLen) {
+HTMLAPIATTR void HTMLAPI HTGetModFolder(char *result, u64 maxLen) {
   if (!result)
     return;
   strcpy_s(result, maxLen, gPathMods);

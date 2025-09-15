@@ -10,7 +10,7 @@
 
 static std::mutex gMutex;
 
-HTMLAPI HTStatus HTInstallHook(
+HTMLAPIATTR HTStatus HTMLAPI HTInstallHook(
   void *fn,
   void *detour,
   void **origin
@@ -21,7 +21,7 @@ HTMLAPI HTStatus HTInstallHook(
   return HT_FAIL;
 }
 
-HTMLAPI HTStatus HTEnableHook(
+HTMLAPIATTR HTStatus HTMLAPI HTEnableHook(
   void *fn
 ) {
   std::lock_guard<std::mutex> lock(gMutex);
@@ -30,7 +30,7 @@ HTMLAPI HTStatus HTEnableHook(
   return HT_FAIL;
 }
 
-HTMLAPI HTStatus HTDisableHook(
+HTMLAPIATTR HTStatus HTMLAPI HTDisableHook(
   void *fn
 ) {
   std::lock_guard<std::mutex> lock(gMutex);
@@ -39,19 +39,19 @@ HTMLAPI HTStatus HTDisableHook(
   return HT_FAIL;
 }
 
-HTMLAPI HTStatus HTInstallHookEx(
+HTMLAPIATTR HTStatus HTMLAPI HTInstallHookEx(
   HTHookFunction *func
 ) {
   return HTInstallHook(func->fn, func->detour, &func->origin);
 }
 
-HTMLAPI HTStatus HTEnableHookEx(
+HTMLAPIATTR HTStatus HTMLAPI HTEnableHookEx(
   HTHookFunction *func
 ) {
   return HTEnableHook(func->fn);
 }
 
-HTMLAPI HTStatus HTDisableHookEx(
+HTMLAPIATTR HTStatus HTMLAPI HTDisableHookEx(
   HTHookFunction *func
 ) {
   return HTDisableHook(func->fn);

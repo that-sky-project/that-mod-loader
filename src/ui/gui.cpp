@@ -63,6 +63,52 @@ static void HTMenuModList() {
   ImGui::EndChild();
 }
 
+static void displayAndUpdateKeys() {
+  float windowPadding = ImGui::GetStyle().WindowPadding.x
+    , cursor;
+  
+  // Calculate cursor pos for right alignment.
+  cursor = ImGui::GetContentRegionAvail().x + ImGui::GetCursorPosX();
+  cursor -= 150.0 + windowPadding;
+  if (cursor <= 150.0)
+    cursor = 150.0;
+
+  for (auto modIt = gModDataRuntime.begin(); modIt != gModDataRuntime.end(); modIt++) {
+    ModRuntime *rt = &modIt->second;
+    if (rt->keyBinds.empty())
+      continue;
+    ImGui::SeparatorText(rt->manifest->modName.c_str());
+    for (auto keyIt = rt->keyBinds.begin(); keyIt != rt->keyBinds.end(); keyIt++) {
+      ModKeyBind *kb = &keyIt->second;
+      ImGui::PushID((void *)kb);
+
+      // Show key display name.
+      ImGui::Text(kb->displayName.c_str());
+
+      // Right align, show current key.
+      ImGui::SameLine();
+      ImGui::SetCursorPosX(cursor);
+      ImGui::Button(
+        ImGui::GetKeyName((ImGuiKey)kb->key),
+        ImVec2(75, 0));
+
+      // Show reset button.
+      ImGui::SameLine();
+      ImGui::BeginDisabled(kb->defaultKey == kb->key);
+      ImGui::Button("Reset",
+        ImVec2(75, 0));
+      ImGui::EndDisabled();
+
+      ImGui::PopID();
+    }
+  }
+}
+
+static void HTMenuSettings() {
+  if (ImGui::CollapsingHeader("Key Bindings##HTModKeys", ImGuiTreeNodeFlags_None))
+    displayAndUpdateKeys();
+}
+
 /**
  * Initialize ImGui context and window message hook.
  * 
@@ -87,6 +133,29 @@ void HTInitGUI() {
   f32 dpiScale = ImGui_ImplWin32_GetDpiScaleForHwnd(gGameStatus.window);
   style.ScaleAllSizes(dpiScale);
   io.FontGlobalScale = dpiScale;
+
+  // Setup colors.
+  ImVec4 *colors = ImGui::GetStyle().Colors;
+  colors[ImGuiCol_WindowBg] = ImVec4(0.06f, 0.06f, 0.06f, 0.51f);
+  colors[ImGuiCol_PopupBg] = ImVec4(0.08f, 0.08f, 0.08f, 0.82f);
+  colors[ImGuiCol_Border] = ImVec4(0.43f, 0.43f, 0.50f, 0.39f);
+  colors[ImGuiCol_FrameBg] = ImVec4(0.08f, 0.08f, 0.08f, 0.47f);
+  colors[ImGuiCol_FrameBgHovered] = ImVec4(0.47f, 0.47f, 0.47f, 0.47f);
+  colors[ImGuiCol_FrameBgActive] = ImVec4(0.00f, 0.00f, 0.00f, 0.47f);
+  colors[ImGuiCol_TitleBg] = ImVec4(0.04f, 0.04f, 0.04f, 0.82f);
+  colors[ImGuiCol_MenuBarBg] = ImVec4(0.00f, 0.00f, 0.00f, 0.51f);
+  colors[ImGuiCol_ScrollbarBg] = ImVec4(0.02f, 0.02f, 0.02f, 0.00f);
+  colors[ImGuiCol_ScrollbarGrab] = ImVec4(0.35f, 0.35f, 0.35f, 1.00f);
+  colors[ImGuiCol_Separator] = ImVec4(0.63f, 0.63f, 0.59f, 0.75f);
+
+  // Setup sizes.
+  style.WindowBorderSize = style.ChildBorderSize = 1;
+  style.PopupBorderSize = style.FrameBorderSize = 0;
+  style.WindowRounding = style.ChildRounding = style.FrameRounding
+    = style.PopupRounding = style.ScrollbarRounding = style.GrabRounding = 10;
+  style.ScrollbarSize = 10;
+  style.SeparatorTextAlign = ImVec2(0, 0.5);
+  style.SeparatorTextPadding = ImVec2(0, 3);
 
   // Install window process hook.
   HTInstallInputHook();
@@ -132,6 +201,7 @@ void HTUpdateGUI() {
       ImGui::EndTabItem();
     }
     if (ImGui::BeginTabItem("Settings")) {
+      HTMenuSettings();
       ImGui::EndTabItem();
     }
     ImGui::EndTabBar();
