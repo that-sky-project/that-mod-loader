@@ -2,11 +2,16 @@
 // Hotkey APIs of HT's Mod Loader.
 // ----------------------------------------------------------------------------
 #include <string>
-#include <unordered_map>
 #include "imgui.h"
 #include "includes/htkeycodes.h"
 #include "includes/htmodloader.h"
-#include "moddata.h"
+#include "htinternal.h"
+
+// Cooldown timer in frames.
+#define HOTKEY_MODIFY_COOLDOWN 5
+
+static std::map<HTKeyCode, std::set<ModKeyBind *>> gHotkeyCallbacks;
+static i32 gKeyModifyCooldown = 0;
 
 HTMLAPIATTR HTHandle HTMLAPI HTHotkeyRegister(
   HMODULE hModule,
@@ -15,7 +20,7 @@ HTMLAPIATTR HTHandle HTMLAPI HTHotkeyRegister(
 ) {
   std::lock_guard<std::mutex> lock(gModDataLock);
   ModRuntime *rt;
-  HTHandle result;
+  ModKeyBind *result;
 
   if (!hModule || !name)
     return HT_INVALID_HANDLE;
@@ -30,8 +35,9 @@ HTMLAPIATTR HTHandle HTMLAPI HTHotkeyRegister(
     it->second.keyName = name;
     it->second.displayName = name;
     it->second.defaultKey = defaultCode;
+    it->second.isRegistered = 1;
 
-    result = (HTHandle)&it->second;
+    result = &it->second;
   } else {
     ModKeyBind *kb = &rt->keyBinds[name];
 
@@ -39,11 +45,39 @@ HTMLAPIATTR HTHandle HTMLAPI HTHotkeyRegister(
     kb->key = defaultCode;
     kb->keyName = name;
     kb->displayName = name;
+    kb->isRegistered = 1;
 
-    result = (HTHandle)kb;
+    result = kb;
   }
 
+  gHotkeyCallbacks[result->key].insert(result);
+  registerHandle(result, HTHandleType_Hotkey);
+
   return result;
+}
+
+HTMLAPIATTR HTStatus HTMLAPI HTHotkeyBind(
+  HTHandle hKey,
+  HTKeyCode key
+) {
+  ModKeyBind *kb;
+
+  if (!hKey)
+    return HT_FAIL;
+
+  kb = (ModKeyBind *)hKey;
+
+  if (kb->key == key)
+    return HT_SUCCESS;
+
+  {
+    std::lock_guard<std::mutex> lock(gModDataLock);
+    gHotkeyCallbacks[kb->key].erase(kb);
+    kb->key = key;
+    gHotkeyCallbacks[key].insert(kb);
+  }
+
+  return HT_SUCCESS;
 }
 
 HTMLAPIATTR u32 HTMLAPI HTHotkeyPressed(
@@ -52,6 +86,8 @@ HTMLAPIATTR u32 HTMLAPI HTHotkeyPressed(
   ModKeyBind *kb;
 
   if (!hKey)
+    return 0;
+  if (gKeyModifyCooldown)
     return 0;
   kb = (ModKeyBind *)hKey;
 
@@ -62,12 +98,80 @@ HTMLAPIATTR HTStatus HTMLAPI HTHotkeyListen(
   HTHandle hKey,
   PFN_HTHotkeyCallback callback
 ) {
+  ModKeyBind *kb;
 
+  if (!hKey || !callback)
+    return HT_FAIL;
+
+  kb = (ModKeyBind *)hKey;
+  {
+    std::lock_guard<std::mutex> lock(gModDataLock);
+    kb->listener = callback;
+  }
+
+  return HT_SUCCESS;
 }
 
 HTMLAPIATTR HTStatus HTMLAPI HTHotkeyUnlisten(
   HTHandle hKey,
-  PFN_HTHotkeyCallback callback
+  void *reserved
 ) {
+  ModKeyBind *kb;
 
+  if (!hKey)
+    return HT_FAIL;
+
+  kb = (ModKeyBind *)hKey;
+  {
+    std::lock_guard<std::mutex> lock(gModDataLock);
+    kb->listener = nullptr;
+  }
+
+  return HT_SUCCESS;
+}
+
+/**
+ * Call key event callback functions.
+ */
+void HTHotkeyDispatch(
+  HTKeyCode key,
+  bool down,
+  bool repeat
+) {
+  std::vector<ModKeyBind *> localCallbacks;
+
+  if (gKeyModifyCooldown)
+    return;
+  if (repeat)
+    // We only dispatch the "real" physical key event.
+    return;
+
+  {
+    std::lock_guard<std::mutex> lock(gModDataLock);
+    auto it = gHotkeyCallbacks.find(key);
+    if (it == gHotkeyCallbacks.end())
+      return;
+    localCallbacks.assign(it->second.begin(), it->second.end());
+  }
+
+  HTKeyEvent event;
+  event.down = down;
+  event.key = key;
+  
+  for (auto it = localCallbacks.begin(); it != localCallbacks.end(); it++) {
+    PFN_HTHotkeyCallback cb = (*it)->listener;
+    if (cb) {
+      event.hKey = *it;
+      cb(&event);
+    }
+  }
+}
+
+void HTHotkeySetCooldown() {
+  gKeyModifyCooldown = HOTKEY_MODIFY_COOLDOWN;
+}
+
+void HTHotkeyUpdateCooldown() {
+  if (gKeyModifyCooldown > 0)
+    gKeyModifyCooldown--;
 }

@@ -18,7 +18,7 @@
 "}"
 
 #define HTTexts_ModLoaderPackageName "htmodloader"
-#define HTTexts_ModLoaderName "HT' Mod Loader"
+#define HTTexts_ModLoaderName "HT's Mod Loader"
 #define HTTexts_ModLoaderDesc "HTML basic apis."
 
 // Modified from ImGui.
@@ -34,7 +34,7 @@ static const char *const HTKeyNames[] = {
   "\\", "]", "`", "CapsLock", "ScrollLock", "NumLock", "PrintScreen",
   "Pause", "Num0", "Num1", "Num2", "Num3", "Num4", "Num5", "Num6",
   "Num7", "Num8", "Num9", "Num.", "Num/", "Num*",
-  "Num-", "N+", "NumEnter", "NumEqual",
+  "Num-", "Num+", "NumEnter", "NumEqual",
   "AppBack", "AppForward", "Oem102",
   "GamepadStart", "GamepadBack",
   "GamepadFaceLeft", "GamepadFaceRight", "GamepadFaceUp", "GamepadFaceDown",

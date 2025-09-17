@@ -5,11 +5,12 @@
 #include <unordered_map>
 #include <shared_mutex>
 #include <unordered_set>
-#include "moddata.h"
 #include "includes/htmodloader.h"
+#include "htinternal.h"
 
-static std::shared_mutex gMutex;
 static std::unordered_map<std::string, std::unordered_set<PFN_HTEventCallback>> gEventCallbacks;
+// This mutex is only for gEventCallbacks.
+static std::shared_mutex gMutex;
 
 HTMLAPIATTR PFN_HTVoidFunction HTMLAPI HTGetProcAddr(
   HMODULE hModule,

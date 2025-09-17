@@ -9,9 +9,7 @@
 #include "utils/logger.h"
 #include "utils/globals.h"
 #include "utils/texts.h"
-#include "loader.h"
-#include "moddata.h"
-#include "bootstrap.h"
+#include "htinternal.h"
 
 static inline i32 fileExists(const wchar_t *path) {
   DWORD attr = GetFileAttributesW(path);
@@ -252,7 +250,7 @@ static void expandMods() {
       LOGI("Loaded mod %s.\n", modName);
     else
       LOGI("Load mod %s failed: No such file.\n", modName);
-  
+
     // Save runtime data.
     {
       // While the mods are loading one by one, subthreads created by the mods
@@ -264,6 +262,8 @@ static void expandMods() {
       runtimeData->manifest = &(it->second);
       getModExportedFunctions(runtimeData);
       it->second.runtime = runtimeData;
+
+      registerHandle(hMod, HTHandleType_Mod);
     }
   }
 }

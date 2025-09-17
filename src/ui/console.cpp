@@ -3,7 +3,7 @@
 #include "imgui.h"
 
 #include "includes/aliases.h"
-#include "ui/console.h"
+#include "htinternal.h"
 
 static ImVector<char *> gLines;
 static char gInputBuffer[1024] = {0};

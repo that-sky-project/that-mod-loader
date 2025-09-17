@@ -19,7 +19,7 @@
 
 #include "includes/aliases.h"
 #include "utils/globals.h"
-#include "ui/gui.h"
+#include "htinternal.h"
 
 // ----------------------------------------------------------------------------
 // [SECTION] Type declarations.

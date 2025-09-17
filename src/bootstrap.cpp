@@ -6,8 +6,7 @@
 #include "includes/htmodloader.h"
 #include "utils/globals.h"
 #include "utils/texts.h"
-#include "moddata.h"
-#include "bootstrap.h"
+#include "htinternal.h"
 
 HTHandle hKeyMenuToggle = nullptr;
 
@@ -23,17 +22,17 @@ static inline i32 parseVersionNumber(
 }
 
 static HTStatus HTMLAPI modOnInit(void *) {
+  //HTCommRegFunction(gModLoaderHandle, "HT");
   hKeyMenuToggle = HTHotkeyRegister(
     gModLoaderHandle,
     "Toggle menu display",
     HTKey_GraveAccent);
+  HTHotkeyListen(
+    hKeyMenuToggle,
+    HTToggleMenuState);
   return HT_SUCCESS;
 }
 
-/**
- * Register the loader itself as a single mod. The package name of the loader
- * is "htmodloader", version is HTML_VERSION_NAME.
- */
 void HTBootstrap() {
   std::lock_guard<std::mutex> lock(gModDataLock);
   ModManifest *manifestSelf = &gModDataLoader[HTTexts_ModLoaderPackageName];
@@ -55,5 +54,5 @@ void HTBootstrap() {
   runtimeSelf->manifest = manifestSelf;
   runtimeSelf->loaderFunc.pfn_HTModOnEnable = nullptr;
   runtimeSelf->loaderFunc.pfn_HTModOnInit = modOnInit;
-  runtimeSelf->loaderFunc.pfn_HTModRenderGui = nullptr;
+  runtimeSelf->loaderFunc.pfn_HTModRenderGui = HTMainMenu;
 }

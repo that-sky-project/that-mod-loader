@@ -1,16 +1,21 @@
+// ----------------------------------------------------------------------------
+// Graphics renderer.
+// ----------------------------------------------------------------------------
 #include <windows.h>
+#include <unordered_map>
 #include "imgui.h"
 #include "imgui_impl_win32.h"
 #include "imgui_impl_vulkan.h"
 #include "vulkan/vulkan.h"
 
-#include "ui/input.h"
-#include "ui/gui.h"
-#include "ui/console.h"
-
 #include "utils/globals.h"
 #include "utils/texts.h"
-#include "moddata.h"
+#include "htinternal.h"
+
+// Widget widths.
+#define HOTKEY_DISPLAY_WIDTH 120.0
+#define HOTKEY_RESET_WIDTH 65.0
+#define HOTKEY_BUTTONS_WIDTH (HOTKEY_DISPLAY_WIDTH + HOTKEY_RESET_WIDTH)
 
 static bool gShowMainMenu = true
   , gFirstFrame = true;
@@ -118,32 +123,46 @@ static void showSingleKeyBind(
   ImGui::SetCursorPosX(cursor);
   if (gActiveKey == kb) {
     // Modify a key.
-    // Forcely capture the keyboard inputs.
     io.WantCaptureKeyboard = true;
-    ImGui::SetNextItemWidth(75);
+    ImGui::SetNextItemWidth(HOTKEY_DISPLAY_WIDTH);
     ImGui::InputText(
       "##KeyModify",
       gFakeBuffer,
       sizeof(gFakeBuffer));
-    ImGui::SetKeyboardFocusHere(-1);
+    bool hovered = ImGui::IsItemHovered();
 
-    // Write the captured key into the ModKeyBind struct.
+    if (hovered)
+      // Forcely capture the keyboard inputs if the input area is hovered.
+      ImGui::SetKeyboardFocusHere(-1);
+
     ImGuiKey key = waitForKeyPress();
-    if (key != ImGuiKey_None) {
+    if (key == ImGuiKey_MouseLeft || key == ImGuiKey_MouseRight) {
+      if (!hovered)
+        // If clicked other region, then cancel current key editing.
+        goto Cancel;
+BindKey:
+      (void)HTHotkeyBind((HTHandle)gActiveKey, (HTKeyCode)key);
+Cancel:
       gFakeBuffer[0] = 0;
-      gActiveKey->key = (HTKeyCode)key;
       gActiveKey = nullptr;
-    }
-  } else if (ImGui::Button(getKeyName(kb->key), ImVec2(75, 0)))
+    } else if (key != ImGuiKey_None)
+      // Capture any key inputs and write the captured key into the ModKeyBind
+      // struct.
+      goto BindKey;
+  } else if (ImGui::Button(getKeyName(kb->key), ImVec2(HOTKEY_DISPLAY_WIDTH, 0)))
     // Trigger key modification.
     gActiveKey = kb;
+  
+  if (gActiveKey)
+    HTHotkeySetCooldown();
+  HTHotkeyUpdateCooldown();
 
   // Show reset button.
   ImGui::SameLine();
   ImGui::BeginDisabled(kb->defaultKey == kb->key);
-  if (ImGui::Button("Reset", ImVec2(75, 0)))
+  if (ImGui::Button("Reset", ImVec2(HOTKEY_RESET_WIDTH, 0)))
     // Reset key bind.
-    kb->key = kb->defaultKey;
+    (void)HTHotkeyBind((HTHandle)kb, kb->defaultKey);
   ImGui::EndDisabled();
 }
 
@@ -153,10 +172,10 @@ static void showSingleKeyBind(
 static void displayAndUpdateKeys() {
   float windowPadding = ImGui::GetStyle().WindowPadding.x
     , cursor;
-  
+
   // Calculate cursor pos for right alignment.
   cursor = ImGui::GetContentRegionAvail().x + ImGui::GetCursorPosX();
-  cursor -= 150.0 + windowPadding;
+  cursor -= HOTKEY_BUTTONS_WIDTH + windowPadding;
   if (cursor <= gMenuKeyBindMaxPosX)
     cursor = gMenuKeyBindMaxPosX;
 
@@ -181,7 +200,7 @@ static void displayAndUpdateKeys() {
 }
 
 /**
- * Rende settings menu.
+ * Render settings menu.
  */
 static void HTMenuSettings() {
   if (ImGui::CollapsingHeader("Key Bindings##HTModKeys", ImGuiTreeNodeFlags_None))
@@ -235,35 +254,43 @@ void HTInitGUI() {
   style.ScrollbarSize = 10;
   style.SeparatorTextAlign = ImVec2(0, 0.5);
   style.SeparatorTextPadding = ImVec2(0, 3);
+  style.WindowTitleAlign = ImVec2(0.5, 0.5);
 
   // Install window process hook.
   HTInstallInputHook();
 }
 
 /**
- * Show HTML Menus.
+ * Shutdown ImGui. Unused.
  */
-void HTUpdateGUI() {
-  // Press "~" key to show or hide.
-  if (GetAsyncKeyState(VK_OEM_3) & 0x1)
-    gShowMainMenu = !gShowMainMenu;
+void HTDeinitGUI() {
+  ImGui_ImplVulkan_Shutdown();
+  ImGui_ImplWin32_Shutdown();
+  ImGui::DestroyContext();
+}
 
+void HTUpdateGUI() {
+  ImGuiIO &io = ImGui::GetIO();
+
+  // Draw all windows.
+  for (auto it = gModDataRuntime.begin(); it != gModDataRuntime.end(); it++) {
+    PFN_HTModRenderGui guiRenderer = (PFN_HTModRenderGui)it->second.loaderFunc.pfn_HTModRenderGui;
+    if (guiRenderer)
+      guiRenderer(io.DeltaTime, nullptr);
+  }
+}
+
+void HTMainMenu(f32, void *) {
   if (!gShowMainMenu)
     return;
 
-  ImGuiStyle &style = ImGui::GetStyle();
-  style.ScrollbarRounding = 0.0f;
-  style.WindowTitleAlign.x = 0.5f;
-  style.WindowTitleAlign.y = 0.5f;
-  ImGuiIO &io = ImGui::GetIO();
-  ImGuiWindowFlags windowFlags = ImGuiWindowFlags_None;
   if (gFirstFrame) {
     // Resize window on the first frame.
     ImGui::SetNextWindowSize(ImVec2(480, 320));
     gFirstFrame = false;
   }
 
-  if (!ImGui::Begin("HTML Main Menu", &gShowMainMenu, windowFlags))
+  if (!ImGui::Begin("HTML Main Menu", &gShowMainMenu))
     return (void)ImGui::End();
   
   if (ImGui::BeginTabBar("HTNavMain")) {
@@ -285,18 +312,11 @@ void HTUpdateGUI() {
     }
     ImGui::EndTabBar();
   }
-
-  for (auto it = gModDataRuntime.begin(); it != gModDataRuntime.end(); it++) {
-    PFN_HTModRenderGui guiRenderer = (PFN_HTModRenderGui)it->second.loaderFunc.pfn_HTModRenderGui;
-    if (guiRenderer)
-      guiRenderer(io.DeltaTime, nullptr);
-  }
   
   ImGui::End();
 }
 
-void HTDeinitGUI() {
-  ImGui_ImplVulkan_Shutdown();
-  ImGui_ImplWin32_Shutdown();
-  ImGui::DestroyContext();
+void HTToggleMenuState(const HTKeyEvent *event) {
+  if (event->down)
+    gShowMainMenu = !gShowMainMenu;
 }

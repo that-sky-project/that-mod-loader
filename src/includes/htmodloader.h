@@ -297,6 +297,8 @@ HTMLAPIATTR HTStatus HTMLAPI HTCommOffEvent(
   
 /**
  * Trigger an event with specified data.
+ * 
+ * DO NOT emit the event itself in the callback function.
  */
 HTMLAPIATTR HTStatus HTMLAPI HTCommEmitEvent(
   const char *name, void *reserved, void *data);
@@ -324,10 +326,36 @@ HTMLAPIATTR HTHandle HTMLAPI HTHotkeyRegister(
   HTKeyCode defaultCode);
 
 /**
- * Check if a registered shortcut key has been pressed.
+ * Change the binded key for a hotkey.
+ */
+HTMLAPIATTR HTStatus HTMLAPI HTHotkeyBind(
+  HTHandle hKey,
+  HTKeyCode key);
+
+/**
+ * Check if a registered key has been pressed.
  */
 HTMLAPIATTR u32 HTMLAPI HTHotkeyPressed(
   HTHandle hKey);
+
+/**
+ * Register a callback for monitoring key state switching.
+ * 
+ * If this function is called multiple times for the same handle, the last
+ * callback passed in will be recorded.
+ */
+HTMLAPIATTR HTStatus HTMLAPI HTHotkeyListen(
+  HTHandle hKey,
+  PFN_HTHotkeyCallback callback);
+
+/**
+ * Unregister the callback function for a hotkey.
+ * 
+ * For a better compatibility, `reserved` must be NULL.
+ */
+HTMLAPIATTR HTStatus HTMLAPI HTHotkeyUnlisten(
+  HTHandle hKey,
+  void *reserved);
 
 #ifdef __cplusplus
 }

@@ -1,7 +1,18 @@
 // ----------------------------------------------------------------------------
 // DLL entry point and initializer of HT's Mod Loader.
 // ----------------------------------------------------------------------------
-#include "dllmain.h"
+#include <windows.h>
+#include <ntstatus.h>
+#include <stdio.h>
+#include <unordered_map>
+#include "MinHook.h"
+
+#include "proxy/winhttp-proxy.h"
+#include "includes/aliases.h"
+#include "utils/globals.h"
+#include "utils/logger.h"
+#include "utils/texts.h"
+#include "htinternal.h"
 
 typedef LONG (WINAPI *PFN_RegEnumValueA)(
   HKEY, DWORD, LPSTR, LPDWORD, LPDWORD, LPDWORD, LPBYTE, LPDWORD);
