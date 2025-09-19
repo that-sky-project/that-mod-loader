@@ -29,8 +29,7 @@ static char gFakeBuffer[5] = {0};
  * Modified from ImGui. Check whether a key has name string.
  */
 static inline bool isNamedKey(HTKeyCode key) {
-  return (key >= HTKey_Tab && key <= HTKey_Oem102)
-    || (key >= HTKey_MouseLeft && key <= HTKey_MouseWheelY);
+  return key >= HTKey_NamedKey_BEGIN && key < HTKey_NamedKey_END;
 }
 
 /**
@@ -42,7 +41,7 @@ static const char *getKeyName(HTKeyCode key) {
   if (!isNamedKey(key))
     return "Unknown";
 
-  return HTKeyNames[key - HTKey_Tab];
+  return HTKeyNames[key - HTKey_NamedKey_BEGIN];
 }
 
 /**
@@ -66,7 +65,7 @@ static void HTMenuModList() {
     return (void)ImGui::EndChild();
   
   ImGui::PushID("##HTModListItems");
-  ImVec2 size(0, ImGui::GetTextLineHeight() * 4);
+  ImVec2 size(0, ImGui::GetTextLineHeight() * 4 + 6);
   ImVec2 spacing = ImGui::GetStyle().ItemSpacing;
   spacing.y = 1;
   ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, spacing);
@@ -76,7 +75,11 @@ static void HTMenuModList() {
 
     // Show mod info.
     ImGuiID childId = ImGui::GetID((void *)(u64)i);
-    ImGui::BeginChild(childId, size, ImGuiChildFlags_Borders);
+    ImGui::BeginChild(
+      childId,
+      size,
+      ImGuiChildFlags_Borders,
+      ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
 
     // Show mod name.
     ImGui::TextColored(modNameColor, "%s", manifest.modName.data());
@@ -94,12 +97,26 @@ static void HTMenuModList() {
   ImGui::EndChild();
 }
 
-static ImGuiKey waitForKeyPress() {
-  for (ImGuiKey i = ImGuiKey_NamedKey_BEGIN; i < ImGuiKey_NamedKey_END; i = (ImGuiKey)(i + 1)) {
-    if (ImGui::IsKeyPressed(i))
-      return i;
+static HTKeyCode waitForKeyPress() {
+  ImGuiIO &io = ImGui::GetIO();
+  for (HTKeyCode i = HTKey_NamedKey_BEGIN; i < HTKey_NamedKey_END; i = (HTKeyCode)(i + 1)) {
+    ImGuiKey keyCode = HTKeyToImGuiKey(i);
+    if (!ImGui::IsKeyPressed(keyCode))
+      continue;
+    if (keyCode == ImGuiKey_MouseWheelY) {
+      if (io.MouseWheel > 0)
+        return HTKey_MouseWheelUp;
+      if (io.MouseWheel < 0)
+        return HTKey_MouseWheelDown;
+    } else if (keyCode == ImGuiKey_MouseWheelX) {
+      if (io.MouseWheelH > 0)
+        return HTKey_MouseWheelLeft;
+      if (io.MouseWheelH < 0)
+        return HTKey_MouseWheelRight;
+    }
+    return i;
   }
-  return ImGuiKey_None;
+  return HTKey_None;
 }
 
 static void showSingleKeyBind(
@@ -135,17 +152,17 @@ static void showSingleKeyBind(
       // Forcely capture the keyboard inputs if the input area is hovered.
       ImGui::SetKeyboardFocusHere(-1);
 
-    ImGuiKey key = waitForKeyPress();
-    if (key == ImGuiKey_MouseLeft || key == ImGuiKey_MouseRight) {
+    HTKeyCode key = waitForKeyPress();
+    if (key == HTKey_MouseLeft || key == HTKey_MouseRight) {
       if (!hovered)
         // If clicked other region, then cancel current key editing.
         goto Cancel;
 BindKey:
-      (void)HTHotkeyBind((HTHandle)gActiveKey, (HTKeyCode)key);
+      (void)HTHotkeyBind((HTHandle)gActiveKey, key);
 Cancel:
       gFakeBuffer[0] = 0;
       gActiveKey = nullptr;
-    } else if (key != ImGuiKey_None)
+    } else if (key != HTKey_None)
       // Capture any key inputs and write the captured key into the ModKeyBind
       // struct.
       goto BindKey;
@@ -317,6 +334,6 @@ void HTMainMenu(f32, void *) {
 }
 
 void HTToggleMenuState(const HTKeyEvent *event) {
-  if (event->down)
+  if ((event->flags & HTKeyEventFlags_Mask) == HTKeyEventFlags_Down)
     gShowMainMenu = !gShowMainMenu;
 }

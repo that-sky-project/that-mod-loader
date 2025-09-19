@@ -26,7 +26,6 @@
 
 // Includes.
 #include <windows.h>
-#include "includes/htkeycodes.h"
 #include "includes/aliases.h"
 
 #ifdef __cplusplus
@@ -99,6 +98,13 @@ HTMLAPIATTR void HTMLAPI HTGetGameExeFolder(
  */
 HTMLAPIATTR void HTMLAPI HTGetModFolder(
   char *result, u64 maxLen);
+
+/**
+ * Get module handle from name. If module is nullptr, then returns the handle
+ * of the caller.
+ */
+HTMLAPIATTR HMODULE HTMLAPI HTGetModuleHandle(
+  const char *module);
 
 // ----------------------------------------------------------------------------
 // [SECTION] HTML signature scan APIs.
@@ -307,10 +313,161 @@ HTMLAPIATTR HTStatus HTMLAPI HTCommEmitEvent(
 // [SECTION] HTML hotkey register APIs.
 // ----------------------------------------------------------------------------
 
+// Modified from ImGui to keep compatibility.
+// NOTE: HTKeyCodes is not completely compatible with ImGuiKey, specially
+// in mouse inputs. Use HTKeyToImGuiKey() to convert to ImGuiKey.
+typedef enum {
+  HTKey_None = 0,
+
+  HTKey_NamedKey_BEGIN = 512,
+  HTKey_Tab = 512,
+  HTKey_LeftArrow,
+  HTKey_RightArrow,
+  HTKey_UpArrow,
+  HTKey_DownArrow,
+  HTKey_PageUp,
+  HTKey_PageDown,
+  HTKey_Home,
+  HTKey_End,
+  HTKey_Insert,
+  HTKey_Delete,
+  HTKey_Backspace,
+  HTKey_Space,
+  HTKey_Enter,
+  HTKey_Escape,
+  HTKey_LeftCtrl, HTKey_LeftShift, HTKey_LeftAlt, HTKey_LeftSuper,
+  HTKey_RightCtrl, HTKey_RightShift, HTKey_RightAlt, HTKey_RightSuper,
+  HTKey_Menu,
+  HTKey_0, HTKey_1, HTKey_2, HTKey_3, HTKey_4, HTKey_5, HTKey_6, HTKey_7, HTKey_8, HTKey_9,
+  HTKey_A, HTKey_B, HTKey_C, HTKey_D, HTKey_E, HTKey_F, HTKey_G, HTKey_H, HTKey_I, HTKey_J,
+  HTKey_K, HTKey_L, HTKey_M, HTKey_N, HTKey_O, HTKey_P, HTKey_Q, HTKey_R, HTKey_S, HTKey_T,
+  HTKey_U, HTKey_V, HTKey_W, HTKey_X, HTKey_Y, HTKey_Z,
+  HTKey_F1, HTKey_F2, HTKey_F3, HTKey_F4, HTKey_F5, HTKey_F6,
+  HTKey_F7, HTKey_F8, HTKey_F9, HTKey_F10, HTKey_F11, HTKey_F12,
+  HTKey_F13, HTKey_F14, HTKey_F15, HTKey_F16, HTKey_F17, HTKey_F18,
+  HTKey_F19, HTKey_F20, HTKey_F21, HTKey_F22, HTKey_F23, HTKey_F24,
+  // '
+  HTKey_Apostrophe,
+  // ,
+  HTKey_Comma,
+  // -
+  HTKey_Minus,
+  // .
+  HTKey_Period,
+  // /
+  HTKey_Slash,
+  // ;
+  HTKey_Semicolon,
+  // =
+  HTKey_Equal,
+  // [
+  HTKey_LeftBracket,
+  // \ (this text inhibit multiline comment caused by backslash)
+  HTKey_Backslash,
+  // ]
+  HTKey_RightBracket,
+  // `
+  HTKey_GraveAccent,
+  HTKey_CapsLock,
+  HTKey_ScrollLock,
+  HTKey_NumLock,
+  HTKey_PrintScreen,
+  HTKey_Pause,
+  HTKey_Keypad0, HTKey_Keypad1, HTKey_Keypad2, HTKey_Keypad3, HTKey_Keypad4,
+  HTKey_Keypad5, HTKey_Keypad6, HTKey_Keypad7, HTKey_Keypad8, HTKey_Keypad9,
+  HTKey_KeypadDecimal,
+  HTKey_KeypadDivide,
+  HTKey_KeypadMultiply,
+  HTKey_KeypadSubtract,
+  HTKey_KeypadAdd,
+  HTKey_KeypadEnter,
+  HTKey_KeypadEqual,
+  // Available on some keyboard/mouses. Often referred as "Browser Back"
+  HTKey_AppBack,
+  HTKey_AppForward,
+  // Non-US backslash.
+  HTKey_Oem102,
+
+  // Mouse inputs.
+  HTKey_Mouse_BEGIN,
+  HTKey_MouseLeft = HTKey_Mouse_BEGIN,
+  HTKey_MouseRight,
+  HTKey_MouseMiddle,
+  HTKey_MouseX1,
+  HTKey_MouseX2,
+  // HTML external mouse wheel key codes. These key codes is different from
+  // ImGuiKey_MouseWheelX or ImGuiKey_MouseWheelY, which uses analog inputs to
+  // indicate the direction, the key codes below act as a single physical key
+  // like those on keyboard.
+  // HTML consider the mouse wheel as a single button representing player
+  // actions, rather than analog input.
+  HTKey_MouseWheelUp,
+  HTKey_MouseWheelDown,
+  // Most users won't have horizontal mouse wheels. Why did I add these?
+  HTKey_MouseWheelLeft,
+  HTKey_MouseWheelRight,
+  HTKey_Mouse_END,
+  HTKey_NamedKey_END = HTKey_Mouse_END,
+
+  HTKey_NamedKey_COUNT = HTKey_NamedKey_END - HTKey_NamedKey_BEGIN,
+
+  HTKeyMod_None = 0,
+  // Ctrl (non-macOS), Cmd (macOS)
+  HTKeyMod_Ctrl = 1 << 12,
+  // Shift
+  HTKeyMod_Shift = 1 << 13,
+  // Option/Menu
+  HTKeyMod_Alt = 1 << 14,
+  // Windows/Super (non-macOS), Ctrl (macOS)
+  HTKeyMod_Super = 1 << 15,
+} HTKeyCode;
+
+typedef enum {
+  HTKeyEventFlags_None = 0,
+  HTKeyEventFlags_Down,
+  HTKeyEventFlags_Up,
+  HTKeyEventFlags_ChangeBind,
+  HTKeyEventFlags_ResetBind,
+  HTKeyEventFlags_MouseWheelDown,
+  HTKeyEventFlags_MouseWheelUp,
+  HTKeyEventFlags_MouseWheelLeft,
+  HTKeyEventFlags_MouseWheelRight,
+
+  // [Internal] Only for internal HTHotkeyDispatch() function. The flags below
+  // will never be set on callbacks.
+  HTKeyEventFlags_Repeat = 1 << 16,
+  HTKeyEventFlags_Blocked = 1 << 17,
+  HTKeyEventFlags_Mask = 0xFFFF
+} HTKeyEventFlags_;
+typedef i32 HTKeyEventFlags;
+
+// Key binding flags.
+typedef enum {
+  // Default value. The KeyDown events will be blocked when any ImGui window is
+  // focused, due to io.WantCaptureKeyboard and io.WantCaptureMouse flags. Set
+  // this flag when you want the key bind is only avaliable "in game".
+  HTHotkeyFlags_None = 0,
+  // If this flag is set, then the KeyDown events won't be blocked. For those
+  // key binds need to preview in game.
+  HTHotkeyFlags_NoBlock = 1 << 0,
+  // Reserved.
+  HTHotkeyFlags_BlockKeyUp = 1 << 1
+} HTHotkeyFlags_;
+typedef i32 HTHotkeyFlags;
+
+// Key event data.
 typedef struct {
+  // Handle of the key bind.
   HTHandle hKey;
+  // Key code of this event. For HTKeyEventFlags_Down and HTKeyEventFlags_Up,
+  // this field is the key pressed. For HTKeyEventFlags_ChangeBind and 
+  // HTKeyEventFlags_ResetBind, is the previous binded key.
   HTKeyCode key;
+  // Is the event a key press event. This field has been deprecated, reserved
+  // for compatibility.
   u08 down;
+  // Key event flags, marked the type of this event.
+  HTKeyEventFlags flags;
 } HTKeyEvent;
 
 // Hotkey callback.
@@ -318,7 +475,7 @@ typedef void (HTMLAPI *PFN_HTHotkeyCallback)(
   const HTKeyEvent *event);
 
 /**
- * Register a single key bind.
+ * Shortcut for passing HTHotkeyFlags_None to HTHotkeyRegisterEx()
  */
 HTMLAPIATTR HTHandle HTMLAPI HTHotkeyRegister(
   HMODULE hModule,
@@ -326,7 +483,17 @@ HTMLAPIATTR HTHandle HTMLAPI HTHotkeyRegister(
   HTKeyCode defaultCode);
 
 /**
- * Change the binded key for a hotkey.
+ * Register a single key bind.
+ */
+HTMLAPIATTR HTHandle HTMLAPI HTHotkeyRegisterEx(
+  HMODULE hModule,
+  const char *name,
+  HTKeyCode defaultCode,
+  HTHotkeyFlags flags);
+
+/**
+ * Change the binded key for a hotkey. If `key` is HTKey_None, then this
+ * function resets the key bind.
  */
 HTMLAPIATTR HTStatus HTMLAPI HTHotkeyBind(
   HTHandle hKey,

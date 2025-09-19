@@ -243,6 +243,9 @@ static void expandMods() {
       // The data of mod loader itself is set in bootstrap(), so we don't need
       // to load it again.
       continue;
+    if (!(it->second.gameEditionFlags & gGameStatus.edition))
+      // Skip mods that not compatible with current game edition.
+      continue;
 
     // Load library.
     hMod = LoadLibraryW(it->second.paths.dll.data());

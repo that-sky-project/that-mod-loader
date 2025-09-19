@@ -14,3 +14,4 @@ test*
 dist/
 pack/
 .VSCodeCounter/
+.idea/

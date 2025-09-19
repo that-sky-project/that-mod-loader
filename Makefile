@@ -1,4 +1,4 @@
-MAKEFLAGS += -s -j6
+MAKEFLAGS += -s -j
 
 DIST_DIR = ./dist
 SRC_DIR = ./src

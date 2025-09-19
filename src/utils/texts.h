@@ -36,12 +36,6 @@ static const char *const HTKeyNames[] = {
   "Num7", "Num8", "Num9", "Num.", "Num/", "Num*",
   "Num-", "Num+", "NumEnter", "NumEqual",
   "AppBack", "AppForward", "Oem102",
-  "GamepadStart", "GamepadBack",
-  "GamepadFaceLeft", "GamepadFaceRight", "GamepadFaceUp", "GamepadFaceDown",
-  "GamepadDpadLeft", "GamepadDpadRight", "GamepadDpadUp", "GamepadDpadDown",
-  "GamepadL1", "GamepadR1", "GamepadL2", "GamepadR2", "GamepadL3", "GamepadR3",
-  "GamepadLStickLeft", "GamepadLStickRight", "GamepadLStickUp", "GamepadLStickDown",
-  "GamepadRStickLeft", "GamepadRStickRight", "GamepadRStickUp", "GamepadRStickDown",
-  "MouseLeft", "MouseRight", "MouseMiddle", "MouseX1", "MouseX2", "MouseWheelX", "MouseWheelY",
-  "ModCtrl", "ModShift", "ModAlt", "ModSuper"
+  "MouseLeft", "MouseRight", "MouseMiddle", "MouseX1", "MouseX2",
+  "MWheelUp", "MWheelDown", "MWheelLeft", "MWheelRight"
 };

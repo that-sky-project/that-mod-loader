@@ -2,7 +2,7 @@
 // Register the mod loader itself as a single mod.
 // ----------------------------------------------------------------------------
 #include <stdio.h>
-#include "includes/htkeycodes.h"
+#include <mutex>
 #include "includes/htmodloader.h"
 #include "utils/globals.h"
 #include "utils/texts.h"

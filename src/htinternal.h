@@ -9,6 +9,8 @@
 #include <mutex>
 #include <unordered_map>
 
+#include "imgui.h"
+
 #include "includes/aliases.h"
 #include "includes/htmodloader.h"
 #include "utils/logger.h"
@@ -102,6 +104,10 @@ struct ModKeyBind {
   // Whether the key is explictly registered. False when the struct is set by 
   // options reader.
   u08 isRegistered;
+  // Key binding config.
+  HTHotkeyFlags flags;
+  // True when the key is down.
+  u08 isDown;
 };
 
 // Mod runtime data. This struct is associated with mod handle.
@@ -207,7 +213,7 @@ void HTToggleMenuState(
   const HTKeyEvent *);
 
 // ----------------------------------------------------------------------------
-// [SECTION] Input hook functions.
+// [SECTION] Input related functions.
 // ----------------------------------------------------------------------------
 
 /**
@@ -215,6 +221,14 @@ void HTToggleMenuState(
  */
 void HTInstallInputHook();
 void HTUninstallInputHook();
+
+/**
+ * Map HTKeyCode to ImGuiKey.
+ * 
+ * NOTE: ImGuiKey can't convert to HTKeyCode.
+ */
+ImGuiKey HTKeyToImGuiKey(
+  HTKeyCode key);
 
 // ----------------------------------------------------------------------------
 // [SECTION] Key event functions.
@@ -224,7 +238,7 @@ void HTUninstallInputHook();
  * Dispatch a key event to all related callbacks.
  */
 void HTHotkeyDispatch(
-  HTKeyCode key, bool down, bool repeat);
+  HTKeyCode key, HTKeyEventFlags flags);
 
 /**
  * After changing the key binding, there is a cooldown to prevent key message
