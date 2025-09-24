@@ -516,7 +516,13 @@ HTMLAPIATTR HTHandle HTMLAPI HTHotkeyRegisterEx(
  */
 HTMLAPIATTR HTStatus HTMLAPI HTHotkeyBind(
   HTHandle hKey,
-  HTKeyCode key);
+  HTKeyCode keyCode);
+
+/**
+ * Reset the key bind to default.
+ */
+HTMLAPIATTR HTStatus HTMLAPI HTHotkeyBindReset(
+  HTHandle hKey);
 
 /**
  * Check if a registered key has been pressed.

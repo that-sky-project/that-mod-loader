@@ -25,25 +25,6 @@ static ModKeyBind *gActiveKey = nullptr;
 static char gFakeBuffer[5] = {0};
 
 /**
- * Modified from ImGui. Check whether a key has name string.
- */
-static inline bool isNamedKey(HTKeyCode key) {
-  return key >= HTKey_NamedKey_BEGIN && key < HTKey_NamedKey_END;
-}
-
-/**
- * Modified from ImGui. Get the name string of a key.
- */
-HTMLAPIATTR const char *HTMLAPI HTHotkeyGetName(HTKeyCode key) {
-  if (key == HTKey_None)
-    return "None";
-  if (!isNamedKey(key))
-    return "Unknown";
-
-  return HTKeyNames[key - HTKey_NamedKey_BEGIN];
-}
-
-/**
  * Render mod list tab item.
  */
 static void HTMenuAbouts() {
@@ -118,11 +99,46 @@ static HTKeyCode waitForKeyPress() {
   return HTKey_None;
 }
 
+static i32 keyBindWidget(HTKeyCode *key) {
+  ImGuiIO &io = ImGui::GetIO();
+
+  gFakeBuffer[0] = 0;
+
+  // Modify a key.
+  io.WantCaptureKeyboard = true;
+  ImGui::SetNextItemWidth(HOTKEY_DISPLAY_WIDTH);
+  ImGui::InputText(
+    "##KeyModify",
+    gFakeBuffer,
+    sizeof(gFakeBuffer));
+  bool hovered = ImGui::IsItemHovered();
+
+  if (hovered)
+    // Forcely capture the keyboard inputs if the input area is hovered.
+    ImGui::SetKeyboardFocusHere(-1);
+
+  HTKeyCode keyPressed = waitForKeyPress();
+  if (keyPressed == HTKey_None)
+    // There's no key's pressed, do nothing.
+    return 0;
+  else if ((keyPressed == HTKey_MouseLeft || keyPressed == HTKey_MouseRight) && !hovered)
+    // If clicked other region, then cancel current key editing.
+    return -1;
+  else if (keyPressed == HTKey_Escape)
+    // Clear key binding, which means setting it to HTKey_None.
+    *key = HTKey_None;
+  else
+    // Capture any key inputs and write the captured key into the ModKeyBind
+    // struct.
+    *key = keyPressed;
+
+  return 1;
+}
+
 static void showSingleKeyBind(
   ModKeyBind *kb,
   f32 cursor
 ) {
-  ImGuiIO &io = ImGui::GetIO();
   f32 x;
 
   // Show key display name.
@@ -138,55 +154,38 @@ static void showSingleKeyBind(
   // Right align, show current key.
   ImGui::SetCursorPosX(cursor);
   if (gActiveKey == kb) {
-    // Modify a key.
-    io.WantCaptureKeyboard = true;
-    ImGui::SetNextItemWidth(HOTKEY_DISPLAY_WIDTH);
-    ImGui::InputText(
-      "##KeyModify",
-      gFakeBuffer,
-      sizeof(gFakeBuffer));
-    bool hovered = ImGui::IsItemHovered();
-
-    if (hovered)
-      // Forcely capture the keyboard inputs if the input area is hovered.
-      ImGui::SetKeyboardFocusHere(-1);
-
-    HTKeyCode key = waitForKeyPress();
-    if (key == HTKey_MouseLeft || key == HTKey_MouseRight) {
-      if (!hovered)
-        // If clicked other region, then cancel current key editing.
-        goto Cancel;
-BindKey:
-      (void)HTHotkeyBind((HTHandle)gActiveKey, key);
-Cancel:
-      gFakeBuffer[0] = 0;
+    // If 
+    HTKeyCode key;
+    i32 t = keyBindWidget(&key);
+    if (t) {
       gActiveKey = nullptr;
-    } else if (key != HTKey_None)
-      // Capture any key inputs and write the captured key into the ModKeyBind
-      // struct.
-      goto BindKey;
-  } else if (ImGui::Button(HTHotkeyGetName(kb->key), ImVec2(HOTKEY_DISPLAY_WIDTH, 0)))
-    // Trigger key modification.
-    gActiveKey = kb;
-  
-  if (gActiveKey)
-    HTHotkeySetCooldown();
-  HTHotkeyUpdateCooldown();
+      if (t == 1)
+        (void)HTHotkeyBind(kb, key);
+    }
+  } else {
+    if (ImGui::Button(HTHotkeyGetName(kb->key), ImVec2(HOTKEY_DISPLAY_WIDTH, 0)))
+      // Trigger key modification.
+      gActiveKey = kb;
+  }
 
-  // Show reset button.
   ImGui::SameLine();
+  // Show reset button.
   ImGui::BeginDisabled(kb->defaultKey == kb->key);
   if (ImGui::Button("Reset", ImVec2(HOTKEY_RESET_WIDTH, 0)))
     // Reset key bind.
     (void)HTHotkeyBind((HTHandle)kb, kb->defaultKey);
   ImGui::EndDisabled();
+
+  if (gActiveKey)
+    HTHotkeySetCooldown();
+  HTHotkeyUpdateCooldown();
 }
 
 /**
  * Display key binds menu, and handle key bind modification.
  */
 static void displayAndUpdateKeys() {
-  float windowPadding = ImGui::GetStyle().WindowPadding.x
+  f32 windowPadding = ImGui::GetStyle().WindowPadding.x
     , cursor;
 
   // Calculate cursor pos for right alignment.

@@ -95,7 +95,7 @@ HTMLAPIATTR HTStatus HTMLAPI HTCommEmitEvent(
 
   if (!name)
     return HT_FAIL;
-  
+
   {
     std::shared_lock<std::shared_mutex> lock(gMutex);
 

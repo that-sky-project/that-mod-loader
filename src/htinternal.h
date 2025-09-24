@@ -281,8 +281,15 @@ void HTToggleMenuState(
   HTKeyEvent *);
 
 // ----------------------------------------------------------------------------
-// [SECTION] Input related functions.
+// [SECTION] Input handler related functions.
 // ----------------------------------------------------------------------------
+
+/**
+ * Modified from ImGui. Check whether a key has name string.
+ */
+static inline bool isNamedKey(HTKeyCode key) {
+  return key >= HTKey_NamedKey_BEGIN && key < HTKey_NamedKey_END;
+}
 
 /**
  * Install and uninstall window message detour.

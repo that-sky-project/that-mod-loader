@@ -3,6 +3,7 @@
 // ----------------------------------------------------------------------------
 #include <string>
 #include "imgui.h"
+#include "utils/texts.h"
 #include "includes/htmodloader.h"
 #include "htinternal.h"
 
@@ -133,9 +134,10 @@ HTMLAPIATTR HTHandle HTMLAPI HTHotkeyRegisterEx(
   return result;
 }
 
-HTMLAPIATTR HTStatus HTMLAPI HTHotkeyBind(
+static HTStatus HTHotkeyBindEx(
   HTHandle hKey,
-  HTKeyCode key
+  HTKeyCode keyCode,
+  bool reset
 ) {
   ModKeyBind *kb;
   HTKeyEvent event;
@@ -145,15 +147,15 @@ HTMLAPIATTR HTStatus HTMLAPI HTHotkeyBind(
 
   kb = (ModKeyBind *)hKey;
 
-  if (key == HTKey_None) {
-    key = kb->defaultKey;
-    event.flags = HTKeyEventFlags_ResetBind;
-  } else
-    event.flags = HTKeyEventFlags_ChangeBind;
-  if (kb->key == key) 
+  if (reset)
+    keyCode = kb->defaultKey;
+  if (kb->key == keyCode) 
     // If the key is not changed, we won't actually set the key.
     return HT_SUCCESS;
 
+  event.flags = reset
+    ? HTKeyEventFlags_ChangeBind
+    : HTKeyEventFlags_ResetBind;
   event.hKey = (HTHandle)kb;
   event.key = kb->key;
   event.down = 0;
@@ -161,10 +163,10 @@ HTMLAPIATTR HTStatus HTMLAPI HTHotkeyBind(
   {
     std::lock_guard<std::mutex> lock(gModDataLock);
     gHotkeyCallbacks[kb->key].erase(kb);
-    kb->key = key;
-    if (key)
+    kb->key = keyCode;
+    if (keyCode)
       // We won't dispatch HTKey_None as an event.
-      gHotkeyCallbacks[key].insert(kb);
+      gHotkeyCallbacks[keyCode].insert(kb);
   }
 
   // Trigger an event.
@@ -172,6 +174,19 @@ HTMLAPIATTR HTStatus HTMLAPI HTHotkeyBind(
     kb->listener(&event);
 
   return HT_SUCCESS;
+}
+
+HTMLAPIATTR HTStatus HTMLAPI HTHotkeyBind(
+  HTHandle hKey,
+  HTKeyCode keyCode
+) {
+  return HTHotkeyBindEx(hKey, keyCode, false);
+}
+
+HTMLAPIATTR HTStatus HTMLAPI HTHotkeyBindReset(
+  HTHandle hKey
+) {
+  return HTHotkeyBindEx(hKey, HTKey_None, true);
 }
 
 HTMLAPIATTR u32 HTMLAPI HTHotkeyPressed(
@@ -222,4 +237,16 @@ HTMLAPIATTR HTStatus HTMLAPI HTHotkeyUnlisten(
   }
 
   return HT_SUCCESS;
+}
+
+/**
+ * Modified from ImGui. Get the name string of a key.
+ */
+HTMLAPIATTR const char *HTMLAPI HTHotkeyGetName(HTKeyCode key) {
+  if (key == HTKey_None)
+    return "None";
+  if (!isNamedKey(key))
+    return "Unknown";
+
+  return HTKeyNames[key - HTKey_NamedKey_BEGIN];
 }
