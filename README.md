@@ -4,7 +4,7 @@ Use HTML to execute code before the game does.
 ## Usage
 1. Download latest mod loader in [releases](https://www.github.com/HTMonkeyG/HTML-Sky/releases/latest).
 2. Put `winhttp.dll` and `html-config.json` (optional) under the same folder with `Sky.exe`.
-3. Create `htmods` folder in the folder contains `Sky.exe`. Your directory should look like this:
+3. Create `htmodloader` folder in the folder contains `Sky.exe`. Your directory should look like this:
 ```
 <Game installation directory>
  ├─Sky.exe
@@ -16,7 +16,7 @@ Use HTML to execute code before the game does.
  ├─winhttp.dll
  └─<...>
 ```
-4. Place each mod in a separated folder within `htmods`. Every mod should contain an executable file (dll) and a `manifest.json` at least.
+4. Place each mod in a separated folder within `mods`. Every mod should contain an executable file (dll) and a `manifest.json` at least.
 5. Start the game, and view loaded mods in `HTML Main Menu`.
 
 ## FAQ
