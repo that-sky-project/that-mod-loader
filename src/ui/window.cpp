@@ -44,7 +44,7 @@ void HTWindowMain(bool *show) {
 }
 
 void HTWindowDebugger(bool *show) {
-  if (!ImGui::Begin("HTML Main Menu", show))
+  if (!ImGui::Begin("HTML Debugger", show))
     return (void)ImGui::End();
 
   ImGui::PushID("HTMLWindowDebugger");
