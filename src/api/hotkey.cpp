@@ -107,18 +107,17 @@ HTMLAPIATTR HTHandle HTMLAPI HTHotkeyRegisterEx(
   ModKeyBind *result;
 
   if (!hModule || !name)
-    return HT_INVALID_HANDLE;
+    // Invalid param.
+    return (HTHandle)HTSetErrorAndReturn(HTError_InvalidParam, HT_INVALID_HANDLE);
 
   rt = getModRuntime(hModule);
   if (!rt)
-    return HT_INVALID_HANDLE;
+    // Module handle is invalid.
+    return (HTHandle)HTSetErrorAndReturn(HTError_InvalidHandle, HT_INVALID_HANDLE);
 
-  if (
-    defaultCode != HTKey_None
-    && (defaultCode < HTKey_NamedKey_BEGIN || defaultCode > HTKey_NamedKey_END)
-  )
+  if (defaultCode != HTKey_None && !isNamedKey(defaultCode))
     // Register fails when the defaultCode is invalid.
-    return HT_INVALID_HANDLE;
+    return (HTHandle)HTSetErrorAndReturn(HTError_InvalidParam, HT_INVALID_HANDLE);
 
   auto it = rt->keyBinds.find(name);
   if (it != rt->keyBinds.end())
@@ -140,7 +139,7 @@ HTMLAPIATTR HTHandle HTMLAPI HTHotkeyRegisterEx(
   gHotkeyCallbacks[result->key].insert(result);
   registerHandle(result, HTHandleType_Hotkey);
 
-  return result;
+  return HTSetErrorAndReturn(HTError_Success, result);
 }
 
 static HTStatus HTHotkeyBindEx(
@@ -152,15 +151,17 @@ static HTStatus HTHotkeyBindEx(
   HTKeyEvent event;
 
   if (!hKey)
-    return HT_FAIL;
+    return HTSetErrorAndReturn(HTError_InvalidParam, HT_FAIL);
+  if (!checkHandleType(hKey, HTHandleType_Hotkey))
+    return HTSetErrorAndReturn(HTError_InvalidHandle, HT_FAIL);
 
   kb = (ModKeyBind *)hKey;
 
   if (reset)
     keyCode = kb->defaultKey;
-  if (kb->key == keyCode) 
+  if (kb->key == keyCode)
     // If the key is not changed, we won't actually set the key.
-    return HT_SUCCESS;
+    return HTSetErrorAndReturn(HTError_Success, HT_SUCCESS);
 
   event.flags = reset
     ? HTKeyEventFlags_ChangeBind
@@ -182,7 +183,7 @@ static HTStatus HTHotkeyBindEx(
   if (kb->listener)
     kb->listener(&event);
 
-  return HT_SUCCESS;
+  return HTSetErrorAndReturn(HTError_Success, HT_SUCCESS);
 }
 
 HTMLAPIATTR HTStatus HTMLAPI HTHotkeyBind(
@@ -219,7 +220,9 @@ HTMLAPIATTR HTStatus HTMLAPI HTHotkeyListen(
   ModKeyBind *kb;
 
   if (!hKey || !callback)
-    return HT_FAIL;
+    return HTSetErrorAndReturn(HTError_InvalidParam, HT_FAIL);
+  if (!checkHandleType(hKey, HTHandleType_Hotkey))
+    return HTSetErrorAndReturn(HTError_InvalidHandle, HT_FAIL);
 
   kb = (ModKeyBind *)hKey;
   {
@@ -237,7 +240,9 @@ HTMLAPIATTR HTStatus HTMLAPI HTHotkeyUnlisten(
   ModKeyBind *kb;
 
   if (!hKey)
-    return HT_FAIL;
+    return HTSetErrorAndReturn(HTError_InvalidParam, HT_FAIL);
+  if (!checkHandleType(hKey, HTHandleType_Hotkey))
+    return HTSetErrorAndReturn(HTError_InvalidHandle, HT_FAIL);
 
   kb = (ModKeyBind *)hKey;
   {

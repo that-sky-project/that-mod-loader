@@ -124,6 +124,26 @@ HTMLAPIATTR UINT32 HTMLAPI HTGetModInfoFrom(
   LPVOID out,
   UINT32 maxLen);
 
+// Error codes. Partially the same as winerror.h
+typedef int HTError;
+typedef enum {
+  HTError_Success = 0,
+  // ERROR_ACCESS_DENIED.
+  HTError_AccessDenied = 5,
+  // ERROR_INVALID_HANDLE.
+  HTError_InvalidHandle = 6,
+  // ERROR_INVALID_PARAMETER.
+  HTError_InvalidParam = 87,
+  // ERROR_NO_MORE_ITEMS.
+  HTError_NoMoreItems = 259,
+  // ERROR_NO_MORE_MATCHES.
+  HTError_NoMoreMatches = 626
+} HTError_;
+
+HTMLAPIATTR void HTMLAPI HTSetLastError(
+  HTError dwError);
+HTMLAPIATTR HTError HTMLAPI HTGetLastError();
+
 // ----------------------------------------------------------------------------
 // [SECTION] HTML signature scan APIs.
 // ----------------------------------------------------------------------------
@@ -526,6 +546,9 @@ HTMLAPIATTR HTStatus HTMLAPI HTHotkeyBindReset(
 
 /**
  * Check if a registered key has been pressed.
+ * 
+ * For a better performance, this function DOES NOT check the handle. Mods MUST
+ * ensure the handle is valid.
  */
 HTMLAPIATTR UINT32 HTMLAPI HTHotkeyPressed(
   HTHandle hKey);

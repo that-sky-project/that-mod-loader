@@ -1,7 +1,20 @@
 // ----------------------------------------------------------------------------
 // Basic APIs of HT's Mod Loader.
 // ----------------------------------------------------------------------------
+#include "includes/htmodloader.h"
 #include "htinternal.h"
+
+static HTError gLastError = HTError_Success;
+
+HTMLAPIATTR void HTMLAPI HTSetLastError(
+  HTError dwError
+) {
+  gLastError = dwError;
+}
+
+HTMLAPIATTR HTError HTMLAPI HTGetLastError() {
+  return gLastError;
+}
 
 HTMLAPIATTR void HTMLAPI HTGetGameStatus(
   HTGameStatus *status
@@ -12,7 +25,7 @@ HTMLAPIATTR void HTMLAPI HTGetGameStatus(
 
 HTMLAPIATTR void HTMLAPI HTGetGameExeFolder(
   LPSTR result,
-  u64 maxLen
+  UINT64 maxLen
 ) {
   if (!result)
     return;
@@ -21,7 +34,7 @@ HTMLAPIATTR void HTMLAPI HTGetGameExeFolder(
 
 HTMLAPIATTR void HTMLAPI HTGetModFolder(
   LPSTR result,
-  u64 maxLen
+  UINT64 maxLen
 ) {
   if (!result)
     return;

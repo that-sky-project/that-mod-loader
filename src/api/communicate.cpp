@@ -19,17 +19,19 @@ HTMLAPIATTR PFN_HTVoidFunction HTMLAPI HTGetProcAddr(
   std::lock_guard<std::mutex> lock(gModDataLock);
 
   if (!hModule || !name)
-    return nullptr;
+    return HTSetErrorAndReturn(HTError_InvalidParam, nullptr);
+  if (!checkHandleType(hModule, HTHandleType_Mod))
+    return HTSetErrorAndReturn(HTError_InvalidHandle, nullptr);
 
   ModRuntime *rt = getModRuntime(hModule);
   if (!rt)
-    return nullptr;
+    return HTSetErrorAndReturn(HTError_InvalidParam, nullptr);
 
   auto it = rt->functions.find(name);
   if (it == rt->functions.end())
-    return nullptr;
+    return HTSetErrorAndReturn(HTError_NoMoreMatches, nullptr);
 
-  return it->second;
+  return HTSetErrorAndReturn(HTError_Success, it->second);
 }
 
 HTMLAPIATTR HTStatus HTMLAPI HTCommRegFunction(
@@ -38,17 +40,20 @@ HTMLAPIATTR HTStatus HTMLAPI HTCommRegFunction(
   PFN_HTVoidFunction func
 ) {
   std::lock_guard<std::mutex> lock(gModDataLock);
+  ModRuntime *rt;
 
   if (!hModule || !name || !func)
-    return HT_FAIL;
+    return HTSetErrorAndReturn(HTError_InvalidParam, HT_FAIL);
+  if (!checkHandleType(hModule, HTHandleType_Mod))
+    return HTSetErrorAndReturn(HTError_InvalidHandle, HT_FAIL);
 
-  ModRuntime *rt = getModRuntime(hModule);
+  rt = getModRuntime(hModule);
   if (!rt)
-    return HT_FAIL;
+    return HTSetErrorAndReturn(HTError_InvalidHandle, HT_FAIL);
 
   rt->functions[name] = func;
 
-  return HT_SUCCESS;
+  return HTSetErrorAndReturn(HTError_Success, HT_SUCCESS);
 }
 
 HTMLAPIATTR HTStatus HTMLAPI HTCommOnEvent(
@@ -58,11 +63,11 @@ HTMLAPIATTR HTStatus HTMLAPI HTCommOnEvent(
   std::unique_lock<std::shared_mutex> lock(gMutex);
 
   if (!name || !callback)
-    return HT_FAIL;
+    return HTSetErrorAndReturn(HTError_InvalidParam, HT_FAIL);
   
   gEventCallbacks[name].insert(callback);
 
-  return HT_SUCCESS;
+  return HTSetErrorAndReturn(HTError_Success, HT_SUCCESS);
 }
 
 HTMLAPIATTR HTStatus HTMLAPI HTCommOffEvent(
@@ -72,18 +77,18 @@ HTMLAPIATTR HTStatus HTMLAPI HTCommOffEvent(
   std::unique_lock<std::shared_mutex> lock(gMutex);
 
   if (!name || !callback)
-    return HT_FAIL;
+    return HTSetErrorAndReturn(HTError_InvalidParam, HT_FAIL);
   
   auto it = gEventCallbacks.find(name);
   if (it == gEventCallbacks.end())
-    return HT_FAIL;
+    return HTSetErrorAndReturn(HTError_NoMoreMatches, HT_FAIL);
 
   it->second.erase(callback);
 
   if (it->second.empty())
     gEventCallbacks.erase(it);
 
-  return HT_SUCCESS;
+  return HTSetErrorAndReturn(HTError_Success, HT_SUCCESS);
 }
 
 HTMLAPIATTR HTStatus HTMLAPI HTCommEmitEvent(
@@ -94,16 +99,16 @@ HTMLAPIATTR HTStatus HTMLAPI HTCommEmitEvent(
   std::vector<PFN_HTEventCallback> localCallbacks;
 
   if (!name)
-    return HT_FAIL;
+    return HTSetErrorAndReturn(HTError_InvalidParam, HT_FAIL);
 
   {
     std::shared_lock<std::shared_mutex> lock(gMutex);
 
     auto it = gEventCallbacks.find(name);
     if (it == gEventCallbacks.end())
-      return HT_FAIL;
+      return HTSetErrorAndReturn(HTError_NoMoreMatches, HT_FAIL);
     if (it->second.empty())
-      return HT_SUCCESS;
+      return HTSetErrorAndReturn(HTError_Success, HT_SUCCESS);
 
     // Save a local copy of the callbacks to avoid deadlock.
     localCallbacks.assign(it->second.begin(), it->second.end());
@@ -115,5 +120,5 @@ HTMLAPIATTR HTStatus HTMLAPI HTCommEmitEvent(
       cb(data);
   }
 
-  return HT_SUCCESS;
+  return HTSetErrorAndReturn(HTError_Success, HT_SUCCESS);
 }

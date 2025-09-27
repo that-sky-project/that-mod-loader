@@ -22,6 +22,8 @@ extern "C" {
 // [SECTION] Mod loader globals.
 // ----------------------------------------------------------------------------
 
+#define HTSetErrorAndReturn(e, v) (HTSetLastError(e), v)
+
 extern HTGameStatus gGameStatus;
 extern char gPathDll[MAX_PATH]
   , gPathGameExe[MAX_PATH]
