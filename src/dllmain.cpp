@@ -224,6 +224,11 @@ static DWORD WINAPI onAttach(LPVOID lpParam) {
 
   // Load mods after the menu is created.
   WaitForSingleObject(gEventGuiInit, 30000);
+
+  std::wstring optionsPath(gPathDataWide);
+  optionsPath += L"\\options.json";
+  HTiOptionsLoadFromFile(optionsPath.c_str());
+
   HTLoadMods();
 
   return 0;
@@ -272,6 +277,8 @@ BOOL APIENTRY DllMain(
     CreateThread(
       nullptr, 0, onAttach, (LPVOID)hModule, 0, nullptr);
   } else if (dwReason == DLL_PROCESS_DETACH) {
+    // Forcely update all options.
+    HTiOptionsUpdate(10000.0f);
     MH_DisableHook(MH_ALL_HOOKS);
     MH_Uninitialize();
     FreeLibrary(hWinHttp);

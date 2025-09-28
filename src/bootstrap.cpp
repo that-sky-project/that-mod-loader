@@ -28,7 +28,7 @@ static HTStatus HTMLAPI modOnInit(void *) {
     HTKey_GraveAccent);
   HTHotkeyListen(
     hKeyMenuToggle,
-    HTToggleMenuState);
+    HTiToggleMenuState);
   return HT_SUCCESS;
 }
 
@@ -53,5 +53,7 @@ void HTBootstrap() {
   runtimeSelf->manifest = manifestSelf;
   runtimeSelf->loaderFunc.pfn_HTModOnEnable = nullptr;
   runtimeSelf->loaderFunc.pfn_HTModOnInit = modOnInit;
-  runtimeSelf->loaderFunc.pfn_HTModRenderGui = HTRenderGUI;
+  runtimeSelf->loaderFunc.pfn_HTModRenderGui = HTiRenderGUI;
+
+  HTiOptionsLoadFor(runtimeSelf);
 }

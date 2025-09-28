@@ -19,7 +19,24 @@ extern "C" {
 #endif
 
 // ----------------------------------------------------------------------------
-// [SECTION] Mod loader globals.
+// [SECTION] Mod loader logger.
+// ----------------------------------------------------------------------------
+
+#define LOGI(format, ...) HTLogA("[INFO] " format, ##__VA_ARGS__)
+#define WLOGI(format, ...) HTLogW(L"[INFO] " format, ##__VA_ARGS__)
+#define LOGW(format, ...) HTLogA("[WARN] " format, ##__VA_ARGS__)
+#define WLOGW(format, ...) HTLogW(L"[WARN] " format, ##__VA_ARGS__)
+#define LOGE(format, ...) HTLogA("[ERR] " format, ##__VA_ARGS__)
+#define WLOGE(format, ...) HTLogW(L"[ERR] " format, ##__VA_ARGS__)
+#define LOGEF(format, ...) HTLogA("[ERR][FATAL] " format, ##__VA_ARGS__)
+#define WLOGEF(format, ...) HTLogW(L"[ERR][FATAL] " format, ##__VA_ARGS__)
+
+void HTInitLogger(const wchar_t *fileName, i08 allocConsole);
+void HTLogA(const char *format, ...);
+void HTLogW(const wchar_t *format, ...);
+
+// ----------------------------------------------------------------------------
+// [SECTION] Mod loader globals and internal functions.
 // ----------------------------------------------------------------------------
 
 #define HTSetErrorAndReturn(e, v) (HTSetLastError(e), v)
@@ -98,27 +115,6 @@ static inline std::string HTiReadFileAsUtf8(std::wstring path) {
 
   return buffer;
 }
-
-// ----------------------------------------------------------------------------
-// [SECTION] Mod loader logger.
-// ----------------------------------------------------------------------------
-
-#define LOGI(format, ...) HTLogA("[INFO] " format, ##__VA_ARGS__)
-#define WLOGI(format, ...) HTLogW(L"[INFO] " format, ##__VA_ARGS__)
-#define LOGW(format, ...) HTLogA("[WARN] " format, ##__VA_ARGS__)
-#define WLOGW(format, ...) HTLogW(L"[WARN] " format, ##__VA_ARGS__)
-#define LOGE(format, ...) HTLogA("[ERR] " format, ##__VA_ARGS__)
-#define WLOGE(format, ...) HTLogW(L"[ERR] " format, ##__VA_ARGS__)
-#define LOGEF(format, ...) HTLogA("[ERR][FATAL] " format, ##__VA_ARGS__)
-#define WLOGEF(format, ...) HTLogW(L"[ERR][FATAL] " format, ##__VA_ARGS__)
-
-void HTInitLogger(const wchar_t *fileName, i08 allocConsole);
-void HTLogA(const char *format, ...);
-void HTLogW(const wchar_t *format, ...);
-
-// ----------------------------------------------------------------------------
-// [SECTION] Mod loader functions.
-// ----------------------------------------------------------------------------
 
 // Check if the given file exists.
 static inline i32 HTiFileExists(const wchar_t *path) {
@@ -285,6 +281,32 @@ static inline bool HTiCheckHandleType(
 }
 
 // ----------------------------------------------------------------------------
+// [SECTION] Option loader declarations.
+// ----------------------------------------------------------------------------
+
+struct ModLoaderOptions {
+  // Mod options is related with package name.
+  std::map<std::string, ModRuntime> modOptions;
+};
+
+extern ModLoaderOptions gModLoaderOptions;
+
+// Load options from the specified file.
+HTStatus HTiOptionsLoadFromFile(
+  const wchar_t *);
+// Try to assign the loaded options for a mod's runtime data.
+void HTiOptionsLoadFor(
+  ModRuntime *);
+// Mark as needing to save options.
+void HTiOptionsMarkDirty();
+// Save all options to gModLoaderOptions. Called by HTiUpdateGUI().
+void HTiOptionsUpdate(
+  f32);
+// Write options to the specified file.
+void HTiOptionsWriteToFile(
+  const wchar_t *);
+
+// ----------------------------------------------------------------------------
 // [SECTION] Bootstrap declarations.
 // ----------------------------------------------------------------------------
 
@@ -302,18 +324,18 @@ extern bool gShowMainMenu
   , gShowDebugger;
 
 // Initialize ImGui style and colors.
-void HTInitGUI();
+void HTiInitGUI();
 // Destroy ImGui context.
-void HTDeinitGUI();
+void HTiDeinitGUI();
 // Show all registered windows. Referenced by layer.cpp.
-void HTUpdateGUI();
+void HTiUpdateGUI();
 // Render HTML windows. Referenced by bootstrap.cpp.
-void HTRenderGUI(
+void HTiRenderGUI(
   f32, void *);
 
 // Toggle main menu display status. Referenced by bootstrap.cpp, the callback
 // of hKeyMenuToggle.
-void HTToggleMenuState(
+void HTiToggleMenuState(
   HTKeyEvent *);
 
 // Submenus.
