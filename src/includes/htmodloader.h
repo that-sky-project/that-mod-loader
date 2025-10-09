@@ -16,8 +16,8 @@
 // Mod loader version.
 // Version number is used for pre-processing statements handling version
 // compatibility.
-#define HTML_VERSION 10300
-#define HTML_VERSION_NAME "1.3.0"
+#define HTML_VERSION 10400
+#define HTML_VERSION_NAME "1.4.0"
 
 #define HTMLAPI __stdcall
 #ifndef HTMLAPIATTR
