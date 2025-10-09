@@ -160,6 +160,8 @@ static void scanMods() {
 
     LOGI("Scanned mod %s.\n", manifest.modName.data());
   } while (FindNextFileW(hFindFile, &findData));
+
+  FindClose(hFindFile);
 }
 
 /**
