@@ -16,6 +16,23 @@ HTMLAPIATTR HTError HTMLAPI HTGetLastError() {
   return gLastError;
 }
 
+HTMLAPIATTR void HTMLAPI HTGetLoaderVersion(
+  UINT32 *result
+) {
+  *result = HTML_VERSION;
+}
+
+HTMLAPIATTR void HTMLAPI HTGetLoaderVersionName(
+  LPSTR result,
+  UINT32 max
+) {
+  if (!max)
+    return;
+  if (max == 1)
+    *result = '\0';
+  strncpy(result, HTML_VERSION_NAME, max - 1);
+}
+
 HTMLAPIATTR void HTMLAPI HTGetGameStatus(
   HTGameStatus *status
 ) {

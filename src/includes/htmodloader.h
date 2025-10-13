@@ -84,6 +84,19 @@ typedef HTStatus (HTMLAPI *PFN_HTModOnEnable)(
   LPVOID);
 
 /**
+ * Get the loader version which has loaded the mod.
+ */
+HTMLAPIATTR void HTMLAPI HTGetLoaderVersion(
+  UINT32 *result);
+
+/**
+ * Get the loader version name which has loaded the mod.
+ */
+HTMLAPIATTR void HTMLAPI HTGetLoaderVersionName(
+  LPSTR result,
+  UINT32 max);
+
+/**
  * Get game status object.
  */
 HTMLAPIATTR void HTMLAPI HTGetGameStatus(
