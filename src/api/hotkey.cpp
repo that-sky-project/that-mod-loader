@@ -142,6 +142,21 @@ HTMLAPIATTR HTHandle HTMLAPI HTHotkeyRegisterEx(
   return HTiErrAndRet(HTError_Success, result);
 }
 
+HTMLAPIATTR HTKeyCode HTMLAPI HTHotkeyBindGet(
+  HTHandle hKey
+) {
+  ModKeyBind *kb;
+
+  if (!hKey)
+    return HTiErrAndRet(HTError_InvalidParam, HTKey_NamedKey_END);
+  if (!HTiCheckHandleType(hKey, HTHandleType_Hotkey))
+    return HTiErrAndRet(HTError_InvalidHandle, HTKey_NamedKey_END);
+
+  kb = (ModKeyBind *)hKey;
+
+  return HTiErrAndRet(HTError_Success, kb->key);
+}
+
 static HTStatus HTHotkeyBindEx(
   HTHandle hKey,
   HTKeyCode keyCode,

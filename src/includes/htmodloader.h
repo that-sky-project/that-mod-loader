@@ -524,7 +524,7 @@ typedef struct {
   HTHandle hKey;
   // [In] Key code of this event. For HTKeyEventFlags_Down and HTKeyEventFlags_Up,
   // this field is the key pressed. For HTKeyEventFlags_ChangeBind and 
-  // HTKeyEventFlags_ResetBind, is the previous binded key.
+  // HTKeyEventFlags_ResetBind, is the previous bound key.
   HTKeyCode key;
   // [In] Is the event a key press event. This field has been deprecated, reserved
   // for compatibility.
@@ -541,7 +541,7 @@ typedef void (HTMLAPI *PFN_HTHotkeyCallback)(
   HTKeyEvent *);
 
 /**
- * Get the name string of a key.
+ * Get the name string of a key code.
  */
 HTMLAPIATTR LPCSTR HTMLAPI HTHotkeyGetName(
   HTKeyCode key);
@@ -564,7 +564,13 @@ HTMLAPIATTR HTHandle HTMLAPI HTHotkeyRegisterEx(
   HTHotkeyFlags flags);
 
 /**
- * Change the binded key for a hotkey. If `key` is HTKey_None, then this
+ * Get the bound key from a key binding. Returns HTKey_NamedKey_END if failed.
+ */
+HTMLAPIATTR HTKeyCode HTMLAPI HTHotkeyBindGet(
+  HTHandle hKey);
+
+/**
+ * Change the bound key for a hotkey. If `key` is HTKey_None, then this
  * function resets the key bind.
  */
 HTMLAPIATTR HTStatus HTMLAPI HTHotkeyBind(

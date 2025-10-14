@@ -8,6 +8,7 @@ This file contains the changelog of HTModLoader.
 Changes:
 - Added HTGetLoaderVersion() and HTGetLoaderVersionName() to get the loader's
   runtime version.
+- Added HTHotkeyBindGet() to get a bound key from a key binding.
 
 -------------------------------------------------------------------------------
  Version 1.5.0 (2025.10.12)
