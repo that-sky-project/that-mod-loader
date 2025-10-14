@@ -11,11 +11,6 @@
 #include "utils/texts.h"
 #include "htinternal.h"
 
-typedef LONG (WINAPI *PFN_RegEnumValueA)(
-  HKEY, DWORD, LPSTR, LPDWORD, LPDWORD, LPDWORD, LPBYTE, LPDWORD);
-typedef NTSTATUS (WINAPI *PFN_NtQueryKey)(
-  HANDLE, u64, PVOID, ULONG, PULONG);
-
 static HMODULE hWinHttp;
 
 /**
@@ -75,42 +70,6 @@ static i32 initPaths(HMODULE hModule) {
   return 1;
 }
 
-/**
- * Find the game window.
- */
-static BOOL CALLBACK enumWndProc(HWND hWnd, LPARAM lParam) {
-  DWORD pid;
-  HTGameEdition edition = HT_EDITION_UNKNOWN;
-  wchar_t buffer[32];
-  HWND *result = (HWND *)lParam;
-
-  // Check the pid of the window.
-  GetWindowThreadProcessId(hWnd, &pid);
-  if (pid != gGameStatus.pid)
-    return 1;
-
-  // Get the game edition from window name.
-  GetWindowTextW(hWnd, buffer, 32);
-  buffer[31] = 0;
-  if (!wcscmp(buffer, L"光·遇"))
-    edition = HT_EDITION_CHINESE;
-  else if (!wcscmp(buffer, L"Sky"))
-    edition = HT_EDITION_INTERNATIONAL;
-  else
-    return 1;
-
-  // Check the window's class name.
-  GetClassNameW(hWnd, buffer, 32);
-  buffer[31] = 0;
-  if (wcscmp(buffer, L"TgcMainWindow"))
-    return 1;
-  
-  *result = hWnd;
-  gGameStatus.edition = edition;
-  gGameStatus.window = hWnd;
-  return 0;
-}
-
 static DWORD WINAPI onAttach(LPVOID lpParam) {
   HMODULE hModule = (HMODULE)lpParam;
 
@@ -150,13 +109,9 @@ BOOL APIENTRY DllMain(
     gGameStatus.pid = GetCurrentProcessId();
     gModLoaderHandle = hModule;
 
-#ifdef NDEBUG
     // No log file and console.
     HTiInitLogger(nullptr, 0);
-#else
-    // Create console.
-    HTiInitLogger(nullptr, 1);
-#endif
+
     initPaths(hModule);
 
     LOGI("HTML attatched.\n");
