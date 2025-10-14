@@ -12,6 +12,9 @@ Changes:
 - Fixed the incorrect display of key bindings that were only read from the options
   and not explicitly registered.
 - Added basic api demo for modtest.
+- User can move HTML Main Menu when switched to `Console` tab.
+- The console will scroll to the bottom automatically when new text is added.
+- Added shared mutex for the console texts.
 
 -------------------------------------------------------------------------------
  Version 1.5.0 (2025.10.12)

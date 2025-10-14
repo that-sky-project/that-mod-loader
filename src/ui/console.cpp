@@ -1,5 +1,6 @@
 #include <cmath>
 #include <vector>
+#include <shared_mutex>
 #include "imgui.h"
 
 #include "htinternal.h"
@@ -23,6 +24,9 @@ typedef std::vector<ConsoleChar> ConsoleLine;
 typedef std::vector<ConsoleLine> ConsoleText;
 
 static ConsoleText gText;
+static bool scrollEnd = false;
+static std::shared_mutex gMutex;
+static f32 gLastTextHeight = 0;
 
 static bool checkColorMark(ConsoleLine &charBuf) {
   // The byte sequence of '§'.
@@ -210,13 +214,19 @@ static void textFormatInto(
   }
 }
 
+void HTiConsoleScrollEnd() {
+  scrollEnd = true;
+}
+
 void HTiRenderConsoleTexts() {
+  std::shared_lock<std::shared_mutex> lock(gMutex);
+
   ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
   ImGui::BeginChild(
     "##ConsoleTexts",
     ImVec2(0, 0),
     0,
-    ImGuiWindowFlags_NoMove | ImGuiWindowFlags_HorizontalScrollbar);
+    ImGuiWindowFlags_HorizontalScrollbar);
 
   ImVec2 contentSize = ImGui::GetWindowContentRegionMax();
   ImDrawList *drawList = ImGui::GetWindowDrawList();
@@ -299,7 +309,17 @@ void HTiRenderConsoleTexts() {
   // We do not directly use the ImGui widgets to render texts, instead we use
   // drawlist to detach document stream. So we need to create this to enable
   // scroll bars.
-  ImGui::Dummy(ImVec2(totalWidth, gText.size() * lineHeight));
+  f32 textHeight = gText.size() * lineHeight;
+  ImGui::Dummy(ImVec2(totalWidth, textHeight));
+
+  if (scrollEnd) {
+    // ImGui::GetScrollMaxY() is calculated from the last frame's height, so
+    // we need to add increased text heights in current frame.
+    ImGui::SetScrollY(ImGui::GetScrollMaxY() + std::max(0.0f, textHeight - gLastTextHeight));
+    scrollEnd = false;
+  }
+
+  gLastTextHeight = textHeight;
 
   ImGui::EndChild();
   ImGui::PopStyleVar();
@@ -310,6 +330,8 @@ void HTiAddConsoleLineV(
   const char *fmt,
   va_list args
 ) {
+  std::unique_lock<std::shared_mutex> lock(gMutex);
+
   va_list argDup;
   char *buffer;
   size_t len;
@@ -335,6 +357,8 @@ void HTiAddConsoleLineV(
   textFormatInto(buffer, 0xFFFFFFFF, raw);
 
   ImGui::MemFree(buffer);
+
+  HTiConsoleScrollEnd();
 }
 
 void HTiAddConsoleLine(
@@ -350,5 +374,6 @@ void HTiAddConsoleLine(
 }
 
 void HTiClearConsole() {
+  std::unique_lock<std::shared_mutex> lock(gMutex);
   gText.clear();
 }

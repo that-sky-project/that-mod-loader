@@ -374,6 +374,7 @@ void HTiWindowMain(
 // Console functions.
 void HTiClearConsole();
 void HTiRenderConsoleTexts();
+void HTiConsoleScrollEnd();
 void HTiAddConsoleLineV(
   bool raw, const char *fmt, va_list args);
 void HTiAddConsoleLine(
