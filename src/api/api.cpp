@@ -1,6 +1,7 @@
 // ----------------------------------------------------------------------------
 // Basic APIs of HT's Mod Loader.
 // ----------------------------------------------------------------------------
+#include "imgui.h"
 #include "includes/htmodloader.h"
 #include "htinternal.h"
 
@@ -112,42 +113,38 @@ HTMLAPIATTR u32 HTMLAPI HTGetModInfoFrom(
   UINT32 maxLen
 ) {
   if (!HTiCheckHandleType(hManifest, HTHandleType_Manifest))
-    return 0;
+    return HTiErrAndRet(HTError_InvalidHandle, 0);
 
   ModManifest *manifest = (ModManifest *)hManifest;
   u64 size;
+  void *result;
 
   if (maxLen && !out)
-    return 0;
+    return HTiErrAndRet(HTError_InvalidParam, 0);
 
   switch (info) {
     case HTModInfoFields_ModName:
-      size = manifest->modName.length();
-      if (!maxLen)
-        return size;
-      if (size > maxLen)
-        return 0;
-      strcpy_s((char *)out, maxLen, manifest->modName.c_str());
-      return size;
-    case HTModInfoFields_PackageName:
-      size = manifest->meta.packageName.length();
-      if (!maxLen)
-        return size;
-      if (size > maxLen)
-        return 0;
-      strcpy_s((char *)out, maxLen, manifest->meta.packageName.c_str());
-      return size;
-    case HTModInfoFields_Folder:
-      size = manifest->paths.folder.length() * sizeof(wchar_t);
-      if (!maxLen)
-        return size;
-      if (size + 2 > maxLen)
-        return 0;
-      memcpy_s(out, maxLen, manifest->meta.packageName.c_str(), size);
-      return size;
-    default:
+      size = manifest->modName.length() + 1;
+      result = (void *)manifest->modName.c_str();
       break;
+    case HTModInfoFields_PackageName:
+      size = manifest->meta.packageName.length() + 1;
+      result = (void *)manifest->meta.packageName.c_str();
+      break;
+    case HTModInfoFields_Folder:
+      size = (manifest->paths.folder.length() + 1) * sizeof(wchar_t);
+      result = (void *)manifest->meta.packageName.c_str();
+      break;
+    default:
+      return HTiErrAndRet(HTError_InvalidParam, 0);
   }
 
-  return 0;
+  if (!maxLen)
+    return HTiErrAndRet(HTError_Success, size);
+  if (size > maxLen)
+    return HTiErrAndRet(HTError_InsufficientBuffer, 0);
+
+  memcpy(out, result, size);
+
+  return HTiErrAndRet(HTError_Success, size);
 }

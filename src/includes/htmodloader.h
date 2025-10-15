@@ -131,6 +131,12 @@ typedef UINT32 HTModInfoFields;
 
 /**
  * Expand mod info from manifest.
+ * 
+ * Returns copied the number of bytes written to the buffer pointed to by
+ * `out`.
+ * 
+ * If the function succeeds and `maxLen` is 0, the return value is the required
+ * size, in bytes, for the buffer indicated by `out`.
  */
 HTMLAPIATTR UINT32 HTMLAPI HTGetModInfoFrom(
   HTHandle hManifest,
@@ -148,6 +154,8 @@ typedef enum {
   HTError_InvalidHandle = 6,
   // ERROR_INVALID_PARAMETER.
   HTError_InvalidParam = 87,
+  // ERROR_INSUFFICIENT_BUFFER.
+  HTError_InsufficientBuffer = 122,
   // ERROR_MOD_NOT_FOUND.
   HTError_ModuleNotFound = 126,
   // ERROR_ALREADY_EXISTS.
