@@ -24,7 +24,7 @@ Use HTML to execute code before the game does.
 1. Download the latest HTML SDK zip in [releases](https://www.github.com/HTMonkeyG/HTML-Sky/releases/latest).
 2. Write your own dll codes with HTML APIs and internal ImGui. You should include the provided ImGui headers by the SDK.
 3. Compile and link `htmodloader.lib` with MinGW. HTML is compiled under MinGW, and it may cause problems due to different ABIs if compiling with MSVC. The mod should use c11 and c++17 standard.
-4. Write `manifest.json` for the mod.
+4. Write `manifest.json` for the mod. Please remove the comments before put it into the game.
 ```json
 {
   // Internal mod id, must be unique.
@@ -53,4 +53,11 @@ Use HTML to execute code before the game does.
   "website": ""
 }
 ```
-5. Put your mod under `htmods` and start the game.
+5. Place your mod DLL and the `manifest.json` file together in a folder within the `htmods` directory. The subfolder can have any name.
+
+### How to create a mod with compilers not compatible with MinGW (like MSVC) ?
+
+1. Download the latest HTML SDK zip in [releases](https://www.github.com/HTMonkeyG/HTML-Sky/releases/latest).
+2. Download the `libraries/imgui-*` directory located under the tag that corresponds to the SDK version, and add them into your project.
+3. Write your own dll codes with HTML APIs and downloaded ImGui. On the first `HTModRenderGui()` call, use `HTImGuiDispatch()` to get ImGui contexts, then use `ImGui::SetCurrentContext()` and `ImGui::SetAllocatorFunctions()` to set the context. Invoke ImGui functions within `HTModRenderGui()` only.
+4. The same as `How to create a mod?`.
