@@ -4,14 +4,9 @@
 #include "utils/texts.h"
 #include "htinternal.h"
 
-static bool gFirstFrame = true;
-
 void HTiWindowMain(bool *show) {
-  if (gFirstFrame && show) {
-    // Resize window on the first frame.
-    ImGui::SetNextWindowSize(ImVec2(480, 320));
-    gFirstFrame = false;
-  }
+  // Resize window on the first frame.
+  ImGui::SetNextWindowSize(ImVec2(480, 320), ImGuiCond_FirstUseEver);
 
   if (!ImGui::Begin("HTML Main Menu", show))
     return (void)ImGui::End();

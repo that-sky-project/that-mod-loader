@@ -8,6 +8,7 @@ This file contains the changelog of HTModLoader.
 Changes:
 - Fixed the incorrect display of console text when multiple '\n' exist in a single
   string.
+- The main menu won't reset its size on every launch of the game.
 
 -------------------------------------------------------------------------------
  Version 1.6.0 (2025.10.16)
