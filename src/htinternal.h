@@ -31,9 +31,15 @@ extern "C" {
 #define LOGEF(format, ...) HTiLogA("[ERR][FATAL] " format, ##__VA_ARGS__)
 #define WLOGEF(format, ...) HTiLogW(L"[ERR][FATAL] " format, ##__VA_ARGS__)
 
-void HTiInitLogger(const wchar_t *fileName, i08 allocConsole);
-void HTiLogA(const char *format, ...);
-void HTiLogW(const wchar_t *format, ...);
+void HTiInitLogger(
+  const wchar_t *fileName,
+  i08 allocConsole);
+void HTiLogA(
+  const char *format,
+  ...);
+void HTiLogW(
+  const wchar_t *format, 
+  ...);
 
 // ----------------------------------------------------------------------------
 // [SECTION] Mod loader globals and internal functions.
@@ -55,7 +61,11 @@ extern HANDLE gHeap
 extern HMODULE gModLoaderHandle;
 
 // Convert string from wchar_t to UTF-8.
-static inline void wcstoutf8(const wchar_t *wcs, char *utf8, i32 max) {
+static inline void wcstoutf8(
+  const wchar_t *wcs,
+  char *utf8,
+  i32 max
+) {
   char *buf;
   i32 size;
 
@@ -74,7 +84,9 @@ static inline void wcstoutf8(const wchar_t *wcs, char *utf8, i32 max) {
 }
 
 // Convert UTF-8 to UTF-16LE, returned std::wstring.
-static inline std::wstring utf8ToWchar(const char *input) {
+static inline std::wstring utf8ToWchar(
+  const char *input
+) {
   if (!input)
     return std::wstring();
   u64 len = strlen(input);
@@ -86,7 +98,9 @@ static inline std::wstring utf8ToWchar(const char *input) {
 }
 
 // Convert UTF-16LE to UTF-8, returned std::string.
-static inline std::string wcharToUtf8(const wchar_t *input) {
+static inline std::string wcharToUtf8(
+  const wchar_t *input
+) {
   if (!input)
     return std::string();
   std::string result;
@@ -97,7 +111,9 @@ static inline std::string wcharToUtf8(const wchar_t *input) {
 }
 
 // Read file as UTF-8 encoding with _wfopen.
-static inline std::string HTiReadFileAsUtf8(std::wstring path) {
+static inline std::string HTiReadFileAsUtf8(
+  std::wstring path
+) {
   std::string buffer;
   FILE *fd = _wfopen(path.c_str(), L"rb");
   u64 size;
@@ -117,7 +133,9 @@ static inline std::string HTiReadFileAsUtf8(std::wstring path) {
 }
 
 // Check if the given file exists.
-static inline i32 HTiFileExists(const wchar_t *path) {
+static inline i32 HTiFileExists(
+  const wchar_t *path
+) {
   DWORD attr = GetFileAttributesW(path);
   if (attr == INVALID_FILE_ATTRIBUTES || (attr & FILE_ATTRIBUTE_DIRECTORY))
     return 0;
@@ -125,7 +143,9 @@ static inline i32 HTiFileExists(const wchar_t *path) {
 }
 
 // Check if the given folder exists.
-static inline i32 HTiFolderExists(const wchar_t *path) {
+static inline i32 HTiFolderExists(
+  const wchar_t *path
+) {
   DWORD attr = GetFileAttributesW(path);
   if (attr == INVALID_FILE_ATTRIBUTES || !(attr & FILE_ATTRIBUTE_DIRECTORY))
     return 0;
@@ -238,6 +258,15 @@ struct ModKeyBind {
   u08 isDown;
 };
 
+// Option data saved by the mod. This struct will be stored at options.json
+struct ModCustomOption {
+  HTOptionType type;
+
+  bool valueBool;
+  double valueNumber;
+  std::string valueString;
+};
+
 // Mod runtime data. This struct is associated with mod handle.
 struct ModRuntime {
   HMODULE handle;
@@ -249,6 +278,8 @@ struct ModRuntime {
   u08 hasRegisteredKeys;
   // Registered hotkeys.
   std::map<std::string, ModKeyBind> keyBinds;
+  // Customized options.
+  std::map<std::string, ModCustomOption> options;
 };
 
 extern std::map<std::string, ModManifest> gModDataLoader;
@@ -352,7 +383,8 @@ void HTiDeinitGUI();
 void HTiUpdateGUI();
 // Render HTML windows. Referenced by bootstrap.cpp.
 void HTiRenderGUI(
-  f32, void *);
+  f32,
+  void *);
 
 // Toggle main menu display status. Referenced by bootstrap.cpp, the callback
 // of hKeyMenuToggle.
@@ -376,16 +408,22 @@ void HTiClearConsole();
 void HTiRenderConsoleTexts();
 void HTiConsoleScrollEnd();
 void HTiAddConsoleLineV(
-  bool raw, const char *fmt, va_list args);
+  bool raw,
+  const char *fmt,
+  va_list args);
 void HTiAddConsoleLine(
-  bool raw, const char *fmt, ...);
+  bool raw,
+  const char *fmt,
+  ...);
 
 // ----------------------------------------------------------------------------
 // [SECTION] Input handler related functions.
 // ----------------------------------------------------------------------------
 
 // Modified from ImGui. Check whether a key has name string.
-static inline bool HTiIsNamedKey(HTKeyCode key) {
+static inline bool HTiIsNamedKey(
+  HTKeyCode key
+) {
   return key >= HTKey_NamedKey_BEGIN && key < HTKey_NamedKey_END;
 }
 
@@ -404,7 +442,9 @@ ImGuiKey HTKeyToImGuiKey(
 
 // Call key event callbacks.
 void HTiHotkeyDispatch(
-  HTKeyCode key, HTKeyEventFlags flags, u08 *userSetBlocked);
+  HTKeyCode key,
+  HTKeyEventFlags flags,
+  u08 *userSetBlocked);
 
 // Set key event cooldown.
 void HTiHotkeyUpdateCooldown();

@@ -165,3 +165,96 @@ HTMLAPIATTR HTStatus HTMLAPI HTImGuiDispatch(
 
   return HTiErrAndRet(HTError_Success, HT_SUCCESS);
 }
+
+HTMLAPIATTR HTStatus HTMLAPI HTOptionGetCustom(
+  HMODULE hModule,
+  LPCSTR key,
+  HTOptionType type,
+  LPVOID data,
+  UINT32 *cch
+) {
+  std::lock_guard<std::mutex> lock(gModDataLock);
+
+  // Param validation.
+  if (!hModule)
+    return HTiErrAndRet(HTError_InvalidParam, HT_FAIL);
+  if (!data && type != HTOptionType_String)
+    return HTiErrAndRet(HTError_InvalidParam, HT_FAIL);
+  if (!data && !cch)
+    return HTiErrAndRet(HTError_InvalidParam, HT_FAIL);
+
+  ModRuntime *rt = HTiGetModRuntime(hModule);
+  if (!rt)
+    return HTiErrAndRet(HTError_InvalidHandle, HT_FAIL);
+  
+  auto it = rt->options.find(key);
+  if (it == rt->options.end())
+    return HTiErrAndRet(HTError_NotFound, HT_FAIL);
+
+  ModCustomOption &option = it->second;
+  if (option.type != type)
+    return HTiErrAndRet(HTError_NotFound, HT_FAIL);
+  
+  switch(type) {
+    case HTOptionType_Bool:
+      *(bool *)data = option.valueBool;
+      break;
+    case HTOptionType_Double:
+      *(f64 *)data = option.valueNumber;
+      break;
+    case HTOptionType_String:
+      if (!data && cch)
+        // Returns the required byte count in `cch`.
+        *cch = option.valueString.length() + 1;
+      else if (data && !cch)
+        // Copy the entire string.
+        strcpy((char *)data, option.valueString.c_str());
+      else if (data && cch) {
+        // Copy string with length limit. If the value `cch` points to is 0,
+        // the function acts the same as `cch` == NULL.
+        strncpy((char *)data, option.valueString.c_str(), *cch - 1);
+        *cch = std::min(*cch, (UINT32)(option.valueString.length() + 1));
+      }
+      break;
+    default:
+      return HTiErrAndRet(HTError_InvalidParam, HT_FAIL);
+  }
+
+  return HTiErrAndRet(HTError_Success, HT_SUCCESS);
+}
+
+HTMLAPIATTR HTStatus HTMLAPI HTOptionSetCustom(
+  HMODULE hModule,
+  LPCSTR key,
+  HTOptionType type,
+  LPCVOID data
+) {
+  std::lock_guard<std::mutex> lock(gModDataLock);
+
+  if (!hModule || !data)
+    return HTiErrAndRet(HTError_InvalidParam, HT_FAIL);
+
+  ModRuntime *rt = HTiGetModRuntime(hModule);
+  if (!rt)
+    return HTiErrAndRet(HTError_InvalidHandle, HT_FAIL);
+  
+  switch(type) {
+    case HTOptionType_Bool:
+      rt->options[key].valueBool = *(bool *)data;
+      break;
+    case HTOptionType_Double:
+      rt->options[key].valueNumber = *(f64 *)data;
+      break;
+    case HTOptionType_String:
+      rt->options[key].valueString = (const char *)data;
+      break;
+    default:
+      return HTiErrAndRet(HTError_InvalidParam, HT_FAIL);
+  }
+  rt->options[key].type = type;
+
+  HTiOptionsMarkDirty();
+
+  return HTiErrAndRet(HTError_Success, HT_SUCCESS);
+}
+

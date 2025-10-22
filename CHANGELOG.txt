@@ -9,6 +9,10 @@ Changes:
 - Fixed the incorrect display of console text when multiple '\n' exist in a single
   string.
 - The main menu won't reset its size on every launch of the game.
+- Fixed possible buffer overflow in HTML Console.
+- Formatted all function declarations in htmodloader.h and htinternal.h
+- Added HTOptionGetCustom() and HTOptionSetCustom() for mods to save their own options
+  and config.
 
 -------------------------------------------------------------------------------
  Version 1.6.0 (2025.10.16)

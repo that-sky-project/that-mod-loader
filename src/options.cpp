@@ -40,10 +40,59 @@ static void deserializeModKeyBinds(
 }
 
 /**
+ * "customized": {
+ *   "<key name>": <value>,
+ *   ...
+ * }
+ */
+static void deserializeModCustomOptions(
+  const cJSON *json,
+  ModRuntime *fakeRT
+) {
+  cJSON *customized = cJSON_GetObjectItemCaseSensitive(json, "customized")
+    , *item;
+
+  cJSON_ArrayForEach(item, customized) {
+    if (!item->string)
+      continue;
+
+    const char *keyName = item->string;
+    ModCustomOption &option = fakeRT->options[keyName];
+
+    if (cJSON_IsNumber(item)) {
+      option.type = HTOptionType_Double;
+      option.valueNumber = cJSON_GetNumberValue(item);
+      LOGI(
+        "  Loaded mod option '%s' (Double): %lf\n",
+        keyName,
+        option.valueNumber);
+    } else if (cJSON_IsString(item)) {
+      option.type = HTOptionType_String;
+      option.valueString = cJSON_GetStringValue(item);
+      LOGI(
+        "  Loaded mod option '%s' (String): '%s'\n",
+        keyName,
+        option.valueString.c_str());
+    } else if (cJSON_IsBool(item)) {
+      option.valueBool = !!cJSON_IsTrue(item);
+      option.type = HTOptionType_Bool;
+      LOGI(
+        "  Loaded mod option '%s' (Bool): '%d'\n",
+        keyName,
+        option.valueBool);
+    }
+  }
+}
+
+/**
  * "mod_options": {
  *   "<mod name>": {
  *     "key_bindings": {
  *       "<key name>": <key code>,
+ *       ...
+ *     },
+ *     "customized": {
+ *       "<key name>": <value>,
  *       ...
  *     }
  *   },
@@ -64,9 +113,14 @@ static void deserializeAllMods(
     if (!cJSON_IsObject(item))
       continue;
 
+    ModRuntime *fakeRT = &gModLoaderOptions.modOptions[packageName];
+
     deserializeModKeyBinds(
       item,
-      &gModLoaderOptions.modOptions[packageName]);
+      fakeRT);
+    deserializeModCustomOptions(
+      item,
+      fakeRT);
   }
 }
 
@@ -97,9 +151,12 @@ void HTiOptionsLoadFor(
   auto pOption = &gModLoaderOptions.modOptions;
 
   auto modOption = pOption->find(packageName);
-  if (modOption != pOption->end())
+  if (modOption != pOption->end()) {
     // Assign key bindings.
     realRT->keyBinds = modOption->second.keyBinds;
+    // Assign saved options.
+    realRT->options = modOption->second.options;
+  }
 }
 
 void HTiOptionsMarkDirty() {
@@ -123,6 +180,7 @@ void HTiOptionsUpdate(
   }
 }
 
+// Merge mod options from `readRT` to `fakeRT`.
 static void mergeOptionsForMod(
   ModRuntime *fakeRT,
   ModRuntime *realRT
@@ -132,16 +190,20 @@ static void mergeOptionsForMod(
     fakeRT->keyBinds[it->first].key = it->second.key;
     fakeRT->keyBinds[it->first].isRegistered = 0;
   }
+
+  for (auto it = realRT->options.begin(); it != realRT->options.end(); it++)
+    fakeRT->options[it->first] = it->second;
 }
 
+// Serialize the saved options of the given mod to JSON.
 static void saveOptionsForMod(
   cJSON *modOptions,
-  const std::string &packageName,
-  ModRuntime *rt
+  const std::string &packageName
 ) {
   auto fakeRT = &gModLoaderOptions.modOptions[packageName];
   cJSON *singleMod = cJSON_CreateObject()
-    , *keyBindings = cJSON_CreateObject();
+    , *keyBindings = cJSON_CreateObject()
+    , *customized = cJSON_CreateObject();
 
   // Save key bindings.
   if (!fakeRT->keyBinds.empty()) {
@@ -153,10 +215,43 @@ static void saveOptionsForMod(
     cJSON_AddItemToObject(singleMod, "key_bindings", keyBindings);
   }
 
+  // Save customized options.
+  if (!fakeRT->options.empty()) {
+    for (auto it = fakeRT->options.begin(); it != fakeRT->options.end(); it++) {
+      ModCustomOption &option = it->second;
+
+      switch(option.type) {
+        case HTOptionType_Bool:
+          cJSON_AddBoolToObject(
+            customized,
+            it->first.c_str(),
+            option.valueBool);
+          break;
+        case HTOptionType_Double:
+          cJSON_AddNumberToObject(
+            customized,
+            it->first.c_str(),
+            option.valueNumber);
+          break;
+        case HTOptionType_String:
+          cJSON_AddStringToObject(
+            customized,
+            it->first.c_str(),
+            option.valueString.c_str());
+          break;
+        default:
+          continue;
+      }
+    }
+
+    cJSON_AddItemToObject(singleMod, "customized", customized);
+  }
+
   cJSON_AddItemToObject(modOptions, packageName.c_str(), singleMod);
 }
 
-cJSON *HTiOptionsWriteToMem() {
+// Write all options to a JSON object.
+static cJSON *HTiOptionsWriteToMem() {
   auto &memOptions = gModLoaderOptions.modOptions;
   cJSON *root = cJSON_CreateObject()
     , *modOptions = cJSON_CreateObject();
@@ -171,11 +266,12 @@ cJSON *HTiOptionsWriteToMem() {
   }
 
   for (auto it = memOptions.begin(); it != memOptions.end(); it++)
-    saveOptionsForMod(modOptions, it->first, &it->second);
+    saveOptionsForMod(modOptions, it->first);
 
   return root;
 }
 
+// Write options to `options.json`.
 void HTiOptionsWriteToFile(
   const wchar_t *path
 ) {

@@ -187,7 +187,7 @@ static void textFormatInto(
 ) {
   const char *pBegin = str;
   u64 length = strlen(str)
-    , subStrLen = 0;
+    , subStrLen = 1;
   u08 insideChar = 0;
   void (*fmt)(const char *, u64, ImU32);
 
@@ -199,7 +199,7 @@ static void textFormatInto(
     char ch = str[i];
 
     if (!insideChar && (ch == '\n' || ch == '\0')) {
-      fmt(pBegin, subStrLen, basicColor);
+      fmt(pBegin, subStrLen - 1, basicColor);
       pBegin = &str[i + 1];
       subStrLen = 0;
       if (*pBegin == '\0')
