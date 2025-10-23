@@ -72,7 +72,7 @@ HTMLAPIATTR HTStatus HTMLAPI HTDataStore(
 
   if (!hModule || !key || !keyLen || !value)
     return HTiErrAndRet(HTError_InvalidParam, HT_FAIL);
-  if (!gReadOptions)
+  if (!gReadOptions || !gLevelDB)
     return HTiErrAndRet(HTError_AccessDenied, HT_FAIL);
 
   rt = HTiGetModRuntime(hModule);
@@ -112,7 +112,7 @@ HTMLAPIATTR char *HTMLAPI HTDataGet(
 
   if (!hModule || !valueLen || !key || !keyLen)
     return HTiErrAndRet(HTError_InvalidParam, nullptr);
-  if (!gReadOptions)
+  if (!gReadOptions || !gLevelDB)
     return HTiErrAndRet(HTError_AccessDenied, nullptr);
 
   rt = HTiGetModRuntime(hModule);
@@ -142,6 +142,23 @@ HTMLAPIATTR char *HTMLAPI HTDataGet(
   }
 
   return HTiErrAndRet(HTError_Success, result);
+}
+
+HTMLAPIATTR HTStatus HTMLAPI HTDataStoreStringKey(
+  HMODULE hModule,
+  const char *key,
+  const char *value,
+  UINT64 valueLen
+) {
+  return HTDataStore(hModule, key, strlen(key), value, valueLen);
+}
+
+HTMLAPIATTR char *HTMLAPI HTDataGetStringKey(
+  HMODULE hModule,
+  const char *key,
+  UINT64 *valueLen
+) {
+  return HTDataGet(hModule, key, strlen(key), valueLen);
 }
 
 HTMLAPIATTR void HTMLAPI HTDataFree(

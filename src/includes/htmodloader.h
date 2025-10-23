@@ -767,6 +767,23 @@ HTMLAPIATTR char *HTMLAPI HTDataGet(
   UINT64 *valueLen);
 
 /**
+ * The key's length is calculated automatically by HTDataStoreStringKey()
+ * and HTDataGetStringKey().
+ * 
+ * The key's length don't include the zero terminator.
+ */
+HTMLAPIATTR HTStatus HTMLAPI HTDataStoreStringKey(
+  HMODULE hModule,
+  const char *key,
+  const char *value,
+  UINT64 valueLen);
+
+HTMLAPIATTR char *HTMLAPI HTDataGetStringKey(
+  HMODULE hModule,
+  const char *key,
+  UINT64 *valueLen);
+
+/**
  * Free the pointer returned by HTDataGet().
  */
 HTMLAPIATTR void HTMLAPI HTDataFree(

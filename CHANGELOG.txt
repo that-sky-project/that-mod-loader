@@ -17,6 +17,7 @@ Changes:
 - Introduced LevelDB and ZLib.
 - Added HTDataStore() and HTDataGet() to save persistent data.
 - Added demo for HTDataStore() and HTDataGet().
+- Added HTDataStoreStringKey() and HTDataGetStringKey().
 
 -------------------------------------------------------------------------------
  Version 1.6.0 (2025.10.16)
