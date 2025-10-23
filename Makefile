@@ -39,9 +39,9 @@ CFLAGS += -I./libraries/cJSON
 LFLAGS += -L./libraries/cJSON -lcjson
 # Include LevelDB.
 CFLAGS += -I./libraries/leveldb/include
-LFLAGS += -L./libraries/leveldb/lib -lleveldb
+LFLAGS += -L./libraries/leveldb/lib -lleveldb -llibz
 # Macros.
-CFLAGS += -DNDEBUG -DHTMLAPIATTR=__declspec(dllexport) -DIMGUI_API=__declspec(dllexport)
+CFLAGS += -DNDEBUG -DHTMLAPIATTR=__declspec(dllexport)
 
 vpath %.c $(SRC_DIRS)
 vpath %.cpp $(SRC_DIRS)
