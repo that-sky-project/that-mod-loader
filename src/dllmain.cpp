@@ -78,6 +78,7 @@ static DWORD WINAPI onAttach(LPVOID lpParam) {
   // Create an independent heap.
   gHeap = HeapCreate(0, 0, 0);
   gEventGuiInit = CreateEventA(nullptr, 0, 0, nullptr);
+  HTiInitLDB();
 
   // Enable mods after the menu is created.
   if (WaitForSingleObject(gEventGuiInit, 30000) == WAIT_TIMEOUT) {
@@ -110,7 +111,7 @@ BOOL APIENTRY DllMain(
     gModLoaderHandle = hModule;
 
     // No log file and console.
-    HTiInitLogger(nullptr, 0);
+    HTiInitLogger(nullptr, 1);
 
     initPaths(hModule);
 
@@ -128,6 +129,7 @@ BOOL APIENTRY DllMain(
   } else if (dwReason == DLL_PROCESS_DETACH) {
     // Forcely update all options.
     HTiOptionsUpdate(114514.1919810f);
+    HTiDeinitLDB();
     MH_DisableHook(MH_ALL_HOOKS);
     MH_Uninitialize();
     FreeLibrary(hWinHttp);
