@@ -62,27 +62,49 @@ static void HTTestShowMainWindow(
       strcpy(buf, "§aC§bo§cl§do§er§1f§2u§3l");
   }
 
-  if (ImGui::CollapsingHeader("Options")) {
-    static char optionString[128] = {0};
-    static double optionDouble = 0.0;
-    static bool optionBool = false;
+  if (ImGui::CollapsingHeader("Data Store")) {
+    if (ImGui::TreeNode("Options")) {
+      static char optionString[128] = {0};
+      static double optionDouble = 0.0;
+      static bool optionBool = false;
 
-    ImGui::InputText("OptionText", optionString, sizeof(optionString));
-    ImGui::InputDouble("OptionDouble", &optionDouble);
-    ImGui::Checkbox("OptionBool", &optionBool);
+      ImGui::InputText("OptionText", optionString, sizeof(optionString));
+      ImGui::InputDouble("OptionDouble", &optionDouble);
+      ImGui::Checkbox("OptionBool", &optionBool);
 
-    if (ImGui::Button("Save")) {
-      HTOptionSetCustom(hModuleDll, "modtest:optionText", HTOptionType_String, (void *)optionString);
-      HTOptionSetCustom(hModuleDll, "modtest:optionDouble", HTOptionType_Double, (void *)&optionDouble);
-      HTOptionSetCustom(hModuleDll, "modtest:optionBool", HTOptionType_Bool, (void *)&optionBool);
+      if (ImGui::Button("Save")) {
+        HTOptionSetCustom(hModuleDll, "modtest:optionText", HTOptionType_String, (void *)optionString);
+        HTOptionSetCustom(hModuleDll, "modtest:optionDouble", HTOptionType_Double, (void *)&optionDouble);
+        HTOptionSetCustom(hModuleDll, "modtest:optionBool", HTOptionType_Bool, (void *)&optionBool);
+      }
+
+      ImGui::SameLine();
+
+      if (ImGui::Button("Read")) {
+        HTOptionGetCustom(hModuleDll, "modtest:optionText", HTOptionType_String, (void *)optionString, NULL);
+        HTOptionGetCustom(hModuleDll, "modtest:optionDouble", HTOptionType_Double, (void *)&optionDouble, NULL);
+        HTOptionGetCustom(hModuleDll, "modtest:optionBool", HTOptionType_Bool, (void *)&optionBool, NULL);
+      }
     }
 
-    ImGui::SameLine();
+    if (ImGui::TreeNode("LevelDB")) {
+      static char data[128] = {0};
+      static const char key[] = "persistentData";
 
-    if (ImGui::Button("Read")) {
-      HTOptionGetCustom(hModuleDll, "modtest:optionText", HTOptionType_String, (void *)optionString, NULL);
-      HTOptionGetCustom(hModuleDll, "modtest:optionDouble", HTOptionType_Double, (void *)&optionDouble, NULL);
-      HTOptionGetCustom(hModuleDll, "modtest:optionBool", HTOptionType_Bool, (void *)&optionBool, NULL);
+      ImGui::InputText("PersistentDataText", data, sizeof(data));
+
+      if (ImGui::Button("Save"))
+        // Including '\0' when storage string values.
+        HTDataStore(hModuleDll, key, strlen(key), data, strlen(data) + 1);
+
+      ImGui::SameLine();
+
+      if (ImGui::Button("Read")) {
+        unsigned long long length;
+        char *dataRead = HTDataGet(hModuleDll, key, strlen(key), &length);
+        memcpy_s(data, sizeof(data), dataRead, length);
+        HTDataFree(dataRead);
+      }
     }
   }
 
