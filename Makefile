@@ -37,6 +37,9 @@ LFLAGS += -L./libraries/vulkan/Lib -lvulkan-1
 # Include cJSON.
 CFLAGS += -I./libraries/cJSON
 LFLAGS += -L./libraries/cJSON -lcjson
+# Include LevelDB.
+CFLAGS += -I./libraries/leveldb/include
+LFLAGS += -L./libraries/leveldb/lib -lleveldb
 # Macros.
 CFLAGS += -DNDEBUG -DHTMLAPIATTR=__declspec(dllexport) -DIMGUI_API=__declspec(dllexport)
 
