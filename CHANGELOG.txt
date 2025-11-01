@@ -16,6 +16,7 @@ Changes:
 - Added demo for HTOptionGetCustom() and HTOptionSetCustom().
 - Now the game edition flags is checked when scanning mods instead of when expanding
   mods.
+- The console will merge repeated lines to a single line.
 
 -------------------------------------------------------------------------------
  Version 1.6.0 (2025.10.16)
