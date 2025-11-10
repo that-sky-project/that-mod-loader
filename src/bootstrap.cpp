@@ -20,7 +20,9 @@ static inline i32 parseVersionNumber(
   return 1;
 }
 
-static HTStatus HTMLAPI modOnInit(void *) {
+static HTStatus HTMLAPI modOnInit(
+  void *
+) {
   //HTCommRegFunction(gModLoaderHandle, "HT");
   hKeyMenuToggle = HTHotkeyRegister(
     gModLoaderHandle,

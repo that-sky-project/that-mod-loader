@@ -154,7 +154,7 @@ static void scanMods() {
     if (!HTiFileExists(manifest.paths.dll.data()))
       continue;
 
-    if (!(manifest.gameEditionFlags & gGameStatus.edition))
+    if (!HTiBackendCheckEdition(manifest.gameEditionFlags))
       // Skip mods that not compatible with current game edition.
       continue;
 

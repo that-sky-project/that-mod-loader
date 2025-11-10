@@ -27,6 +27,22 @@ typedef HWND (WINAPI *PFN_CreateWindowExW)(
 static PFN_CreateWindowExA fn_CreateWindowExA;
 static PFN_CreateWindowExW fn_CreateWindowExW;
 
+static i32 editionCheck(
+  HTGameEdition edition
+) {
+  HTGameEdition local = gGameStatus.edition;
+  if (
+    edition == HT_ImplSky_EditionAll
+    && (local == HT_ImplSky_EditionChinese || local == HT_ImplSky_EditionInternation)
+  )
+    return 1;
+
+  if (edition == local)
+    return 1;
+
+  return 0;
+}
+
 static i32 checkWindowAndSetupAW(HWND hWnd) {
   wchar_t buffer[32];
   HTGameStatus status;
@@ -57,6 +73,9 @@ static i32 checkWindowAndSetupAW(HWND hWnd) {
   status.pid = GetCurrentProcessId();
   status.window = hWnd;
   HTiSetGameStatus(&status);
+
+  // Set edition check function.
+  HTiBackendSetEditionCheckFunc((PFN_HTVoidFunction)editionCheck);
 
   // Load mods.
   HTiSetupAll();

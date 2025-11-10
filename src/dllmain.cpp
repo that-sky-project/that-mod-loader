@@ -16,7 +16,9 @@ static HMODULE hWinHttp;
 /**
  * Get path to the dll and the layer config file.
  */
-static i32 initPaths(HMODULE hModule) {
+static i32 initPaths(
+  HMODULE hModule
+) {
   char *p;
   wchar_t tmp[MAX_PATH];
 
@@ -68,7 +70,9 @@ static i32 initPaths(HMODULE hModule) {
   return 1;
 }
 
-static DWORD WINAPI onAttach(LPVOID lpParam) {
+static DWORD WINAPI onAttach(
+  LPVOID lpParam
+) {
   HMODULE hModule = (HMODULE)lpParam;
 
   (void)hModule;

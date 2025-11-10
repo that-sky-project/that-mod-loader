@@ -355,13 +355,32 @@ void HTiOptionsWriteToFile(
 // [SECTION] Bootstrap and setup declarations.
 // ----------------------------------------------------------------------------
 
-// Backends must try to accquire this lock before initalize ImGui.
-extern std::mutex gGraphicInitMutex;
 extern HTHandle hKeyMenuToggle;
 
 // Check if the backend expects the process module name.
 // Used to quickly confirm whether full functionality needs to be enabled.
 int HTiBackendExpectProcess();
+
+// Backend critical section implementation.
+//
+// The following functions must be invoked in pairs; each call to
+// `HTiBackendGLEnterCritical()` must be subsequently matched by a call to
+// `HTiBackendGLLeaveCritical()`.
+//
+// The backend must check the return value of `HTiBackendGLEnterCritical()` to
+// determine if ImGui requires initialization.
+int HTiBackendGLEnterCritical();
+int HTiBackendGLLeaveCritical();
+
+// Call this function to send event to the HTML after ImGui initialization is
+// completed.
+int HTiBackendGLInitComplete();
+
+// Check if the mod is compatible with the target game version.
+int HTiBackendCheckEdition(
+  HTGameEdition);
+int HTiBackendSetEditionCheckFunc(
+  PFN_HTVoidFunction);
 
 // Setup all enabled backends.
 int HTiBackendSetupAll();

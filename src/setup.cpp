@@ -4,7 +4,9 @@
 
 static std::mutex gGameStatusMutex;
 
-void HTiSetGameStatus(HTGameStatus *status) {
+void HTiSetGameStatus(
+  HTGameStatus *status
+) {
   std::lock_guard<std::mutex> lock(gGameStatusMutex);
 
   if (gGameStatus.edition)

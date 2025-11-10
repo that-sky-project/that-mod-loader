@@ -6,6 +6,8 @@ This file contains the changelog of HTModLoader.
 -------------------------------------------------------------------------------
 
 Breaking Changes:
+- Added more backend functions to allow backends to customize game edition check
+  and ImGui initialize.
 - Vulkan layer implementaion will create `html-config.json` if missing.
 - Use `htconfig.h` to enable or disable backends.
 - Allow customization of game and renderer backend code except for Sky:CotL.

@@ -605,7 +605,7 @@ static VkResult renderGui(
       vkCmdBeginRenderPass(f->CommandBuffer, &info, VK_SUBPASS_CONTENTS_INLINE);
     }
 
-    if (!ImGui::GetIO().BackendRendererUserData) {
+    if (HTiBackendGLEnterCritical()) {
       ImGui_ImplVulkan_InitInfo initInfo = {};
       initInfo.Instance = g->instance;
       initInfo.PhysicalDevice = g->physicalDevice;
@@ -624,8 +624,9 @@ static VkResult renderGui(
       ImGui_ImplVulkan_Init(&initInfo);
 
       // Set the gui inited event.
-      SetEvent(gEventGuiInit);
+      HTiBackendGLInitComplete();
     }
+    HTiBackendGLLeaveCritical();
 
     // Create new frame.
     ImGui_ImplVulkan_NewFrame();

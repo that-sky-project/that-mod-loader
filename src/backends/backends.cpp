@@ -2,12 +2,55 @@
 // Backend dispatcher.
 // You must put your backend initialize functions under the function below.
 // ----------------------------------------------------------------------------
+#include <windows.h>
 #include <mutex>
+
+#include "imgui.h"
 
 #include "htinternal.h"
 #include "includes/htconfig.h"
 
-std::mutex gGraphicInitMutex;
+typedef int (HTMLAPI *PFN_HTiGameEditionCheck)(
+  HTGameEdition);
+
+static i32 checkEditionDefault(
+  HTGameEdition);
+static CRITICAL_SECTION gGraphicInitMutex;
+static PFN_HTiGameEditionCheck gEditionCheck = checkEditionDefault;
+
+static i32 checkEditionDefault(
+  HTGameEdition edition
+) {
+  return edition == gGameStatus.edition;
+}
+
+int HTiBackendGLEnterCritical() {
+  EnterCriticalSection(&gGraphicInitMutex);
+  return !ImGui::GetIO().BackendRendererUserData;
+}
+
+int HTiBackendGLLeaveCritical() {
+  LeaveCriticalSection(&gGraphicInitMutex);
+  return 1;
+}
+
+int HTiBackendGLInitComplete() {
+  SetEvent(gEventGuiInit);
+  return 1;
+}
+
+int HTiBackendCheckEdition(
+  HTGameEdition edition
+) {
+  return gEditionCheck(edition);
+}
+
+int HTiBackendSetEditionCheckFunc(
+  PFN_HTVoidFunction func
+) {
+  gEditionCheck = (PFN_HTiGameEditionCheck)func;
+  return 1;
+}
 
 int HTiBackendExpectProcess() {
   int success = 0;
@@ -20,8 +63,8 @@ int HTiBackendExpectProcess() {
 #endif
 #ifdef USE_IMPL_MCBE
   // Expect Minecraft.Windows.exe
-  extern void HTi_ImplSky_ExpectedProcess();
-  success |= HTi_ImplSky_ExpectedProcess();
+  extern void HTi_ImplMCBE_ExpectedProcess();
+  success |= HTi_ImplMCBE_ExpectedProcess();
 #endif
 
   return success;
@@ -29,6 +72,8 @@ int HTiBackendExpectProcess() {
 
 int HTiBackendSetupAll() {
   int success = 0;
+
+  InitializeCriticalSection(&gGraphicInitMutex);
 
   // Setup all graphic backends.
 #ifdef USE_IMPL_VKLAYER
