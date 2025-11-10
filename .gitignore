@@ -8,6 +8,7 @@
 *.bak
 *.ini
 test*
+!libraries/leveldb/lib/*.a
 
 # Folders
 .vscode/

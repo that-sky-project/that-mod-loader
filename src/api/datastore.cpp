@@ -1,6 +1,6 @@
 #include <string>
 
-#include "leveldb/c.h"
+#include "leveldb_c.h"
 #include "htinternal.h"
 
 static leveldb_t *gLevelDB = nullptr;
