@@ -47,6 +47,8 @@ typedef int HTGameEdition;
 
 // Uninitialized state.
 #define HT_ImplNull_EditionUnknown 0
+// Only for debug use, don't check edition compatibility.
+#define HT_ImplNull_EditionAll 0xFFFFFFFF
 
 // Game status.
 typedef struct {

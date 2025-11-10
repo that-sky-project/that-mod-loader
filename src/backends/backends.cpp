@@ -42,6 +42,9 @@ int HTiBackendGLInitComplete() {
 int HTiBackendCheckEdition(
   HTGameEdition edition
 ) {
+  if ((u32)edition == (u32)HT_ImplNull_EditionAll)
+    return 1;
+
   return gEditionCheck(edition);
 }
 
@@ -63,8 +66,8 @@ int HTiBackendExpectProcess() {
 #endif
 #ifdef USE_IMPL_MCBE
   // Expect Minecraft.Windows.exe
-  extern void HTi_ImplMCBE_ExpectedProcess();
-  success |= HTi_ImplMCBE_ExpectedProcess();
+  extern int HTi_ImplMCBE_ExpectProcess();
+  success |= HTi_ImplMCBE_ExpectProcess();
 #endif
 
   return success;
@@ -83,7 +86,7 @@ int HTiBackendSetupAll() {
 #endif
 #ifdef USE_IMPL_OPENGL3
   // Setup OpenGL3.
-  extern void HTi_ImplOpenGL3_Init();
+  extern int HTi_ImplOpenGL3_Init();
   success |= HTi_ImplOpenGL3_Init();
 #endif
 
@@ -95,7 +98,7 @@ int HTiBackendSetupAll() {
 #endif
 #ifdef USE_IMPL_MCBE
   // Setup Minecraft:Bedrock.
-  extern void HTi_ImplMCBE_Init();
+  extern int HTi_ImplMCBE_Init();
   success |= HTi_ImplMCBE_Init();
 #endif
 

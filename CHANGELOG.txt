@@ -5,7 +5,9 @@ This file contains the changelog of HTModLoader.
  Version 1.8.0 WIP
 -------------------------------------------------------------------------------
 
-Breaking Changes:
+Changes:
+- Added game backend for MCBE Chinese Edition.
+- Added `HT_ImplNull_EditionAll` to ignore edition check.
 - Added more backend functions to allow backends to customize game edition check
   and ImGui initialize.
 - Vulkan layer implementaion will create `html-config.json` if missing.
