@@ -2,7 +2,9 @@
 // Vulkan layer implementation of HT's Mod Loader.
 // Referring to the implementation of SML-PC.
 // ----------------------------------------------------------------------------
+
 #include <windows.h>
+#include <ntstatus.h>
 #include <stdio.h>
 #include "vulkan/vulkan.h"
 #include "vulkan/vk_layer.h"
@@ -11,17 +13,42 @@
 #include "imgui.h"
 #include "imgui_impl_win32.h"
 #include "imgui_impl_vulkan.h"
+#include "MinHook.h"
 
 #include <unordered_set>
 #include <mutex>
+#include <string>
 #include <vector>
 #include <map>
 
 #include "htinternal.h"
+#include "includes/htconfig.h"
+
+#ifdef USE_IMPL_VKLAYER
 
 // ----------------------------------------------------------------------------
 // [SECTION] Type declarations.
 // ----------------------------------------------------------------------------
+
+#define HTTexts_VulkanLayer L"\\REGISTRY\\MACHINE\\SOFTWARE\\Khronos\\Vulkan\\ImplicitLayers"
+#define HTTexts_DefaultLayerConfig "{\n"\
+  "\"file_format_version\": \"1.0.0\",\n"\
+  "\"layer\": {\n"\
+    "\"name\": \"VK_LAYER_HT_MOD_LOADER\",\n"\
+    "\"type\": \"GLOBAL\",\n"\
+    "\"api_version\": \"1.3\",\n"\
+    "\"library_path\":\".\\\\winhttp.dll\",\n"\
+    "\"implementation_version\": \"1\",\n"\
+    "\"description\": \"Layer for HT's Mod Loader\",\n"\
+    "\"functions\":{\n"\
+      "\"vkGetInstanceProcAddr\": \"HT_vkGetInstanceProcAddr\",\n"\
+      "\"vkGetDeviceProcAddr\": \"HT_vkGetDeviceProcAddr\"\n"\
+    "},\n"\
+    "\"disable_environment\":{\n"\
+      "\"DISABLE_HT_MOD_LOADER\":\"1\"\n"\
+    "}\n"\
+  "}\n"\
+"}"
 
 #define HTLAYER_ATTR extern "C" __declspec(dllexport)
 #define MAX_FRAME_BUFFER 8
@@ -83,6 +110,11 @@ struct GuiStatus {
   ImGui_ImplVulkanH_FrameSemaphores frameSemaphores[MAX_FRAME_BUFFER];
 };
 
+typedef LONG (WINAPI *PFN_RegEnumValueA)(
+  HKEY, DWORD, LPSTR, LPDWORD, LPDWORD, LPDWORD, LPBYTE, LPDWORD);
+typedef NTSTATUS (WINAPI *PFN_NtQueryKey)(
+  HANDLE, u64, PVOID, ULONG, PULONG);
+
 // ----------------------------------------------------------------------------
 // [SECTION] Variable declarations.
 // ----------------------------------------------------------------------------
@@ -97,6 +129,12 @@ static std::map<VkQueue, QueueData> gQueueData;
 static std::mutex gMutex;
 // ImGui related data.
 static GuiStatus gGuiStatus = {0};
+
+static PFN_RegEnumValueA fn_RegEnumValueA;
+static std::unordered_map<HKEY, DWORD> gRegKeys;
+static std::mutex gRegKeysMutex;
+// Path to the Vulkan layer config json file.
+static char gPathLayerConfig[MAX_PATH] = {0};
 
 // ----------------------------------------------------------------------------
 // [SECTION] Local helper functions.
@@ -567,7 +605,7 @@ static VkResult renderGui(
       vkCmdBeginRenderPass(f->CommandBuffer, &info, VK_SUBPASS_CONTENTS_INLINE);
     }
 
-    if (!ImGui::GetIO().BackendRendererUserData) {
+    if (HTiBackendGLEnterCritical()) {
       ImGui_ImplVulkan_InitInfo initInfo = {};
       initInfo.Instance = g->instance;
       initInfo.PhysicalDevice = g->physicalDevice;
@@ -586,8 +624,9 @@ static VkResult renderGui(
       ImGui_ImplVulkan_Init(&initInfo);
 
       // Set the gui inited event.
-      SetEvent(gEventGuiInit);
+      HTiBackendGLInitComplete();
     }
+    HTiBackendGLLeaveCritical();
 
     // Create new frame.
     ImGui_ImplVulkan_NewFrame();
@@ -919,3 +958,139 @@ extern "C" VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL HT_vkGetDeviceProcAddr(
 
   return nullptr;
 }
+
+// ----------------------------------------------------------------------------
+// [SECTION] Initialization functions.
+// ----------------------------------------------------------------------------
+
+/**
+ * Check if the key name is a Vulkan implicit layer list.
+ */
+static i32 checkKeyName(HKEY key) {
+  HMODULE ntdll = GetModuleHandleA("ntdll.dll");
+  PFN_NtQueryKey fn_NtQueryKey;
+  DWORD size = 0;
+  NTSTATUS result = STATUS_SUCCESS;
+  wchar_t *buffer;
+  i32 r = 0;
+
+  if (!key || !ntdll)
+    return 0;
+
+  fn_NtQueryKey = (PFN_NtQueryKey)GetProcAddress(ntdll, "NtQueryKey");
+  if (!fn_NtQueryKey)
+    return 0;
+
+  result = fn_NtQueryKey(key, 3, 0, 0, &size);
+  if (result == STATUS_BUFFER_TOO_SMALL) {
+    buffer = (wchar_t *)malloc(size + 2);
+    if (!buffer)
+      return 0;
+
+    result = fn_NtQueryKey(key, 3, buffer, size, &size);
+    if (result == STATUS_SUCCESS)
+      buffer[size / sizeof(wchar_t)] = 0;
+    
+    r = !wcscmp(buffer + 2, HTTexts_VulkanLayer);
+    free(buffer);
+  }
+
+  return r;
+}
+
+/**
+ * Inject HTML layer on index 0.
+ */
+static LONG WINAPI hook_RegEnumValueA(
+  HKEY hKey,
+  DWORD dwIndex,
+  LPSTR lpValueName,
+  LPDWORD lpcchValueName,
+  LPDWORD lpReserved,
+  LPDWORD lpType,
+  LPBYTE lpData,
+  LPDWORD lpcbData
+) {
+  std::lock_guard<std::mutex> lock(gRegKeysMutex);
+
+  LONG result;
+  auto it = gRegKeys.find(hKey);
+  bool notSaved = it == gRegKeys.end();
+
+  if (notSaved && !dwIndex) {
+    // The handle isn't recorded and it's the first call on this key.
+    if (checkKeyName(hKey)) {
+      // Set the current registry handle as access for Vulkan layer loader.
+      gRegKeys[hKey] = 1;
+
+      // Inject the layer.
+      if (lpValueName)
+        strcpy(lpValueName, gPathLayerConfig);
+      if (lpcchValueName)
+        *lpcchValueName = strlen(gPathLayerConfig) + 1;
+      if (lpType)
+        *lpType = REG_DWORD;
+      if (lpData)
+        *((i32 *)lpData) = 0;
+      if (lpcbData)
+        *lpcbData = 4;
+
+      return ERROR_SUCCESS;
+    } else
+      // Set the current registry handle as regular access.
+      gRegKeys[hKey] = 2;
+  }
+
+  // Return the enumerate result.
+  result = fn_RegEnumValueA(
+    hKey,
+    (!notSaved && gRegKeys[hKey] == 1) ? dwIndex - 1 : dwIndex,
+    lpValueName,
+    lpcchValueName,
+    lpReserved,
+    lpType,
+    lpData,
+    lpcbData);
+  if (result == ERROR_NO_MORE_ITEMS)
+    // Enumeration ended.
+    gRegKeys.erase(hKey);
+
+  return result;
+}
+
+/**
+ * Setup the vulkan layer injection.
+ */
+int HTi_ImplVkLayer_Init() {
+  int success = 0;
+  MH_STATUS s;
+
+  strcpy(gPathLayerConfig, gPathDll);
+  strcat(gPathLayerConfig, "\\html-config.json");
+
+  s = MH_CreateHookApi(
+    L"advapi32.dll",
+    "RegEnumValueA",
+    (void *)hook_RegEnumValueA,
+    (void **)&fn_RegEnumValueA
+  );
+  success |= (s == MH_OK);
+
+  std::wstring path = utf8ToWchar(gPathLayerConfig);
+  if (!HTiFileExists(path.c_str())) {
+    // Try to create html-config.json
+    FILE *fd = _wfopen(path.c_str(), L"w+");
+    if (fd) {
+      fwrite(
+        HTTexts_DefaultLayerConfig,
+        sizeof(char),
+        sizeof(HTTexts_DefaultLayerConfig) - 1,
+        fd);
+      fclose(fd);
+    }
+  }
+
+  return success;
+}
+
+#endif

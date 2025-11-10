@@ -13,8 +13,6 @@ char gPathDll[MAX_PATH] = {0};
 // The folder path where the game executable is located. In most cases the
 // same as gPathDll.
 char gPathGameExe[MAX_PATH] = {0};
-// Path to the Vulkan layer config json file.
-char gPathLayerConfig[MAX_PATH] = {0};
 // Path to the HTML data folder.
 char gPathData[MAX_PATH] = {0};
 // Path to the mods folder.

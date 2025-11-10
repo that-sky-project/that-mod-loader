@@ -50,7 +50,6 @@ void HTiLogW(
 extern HTGameStatus gGameStatus;
 extern char gPathDll[MAX_PATH]
   , gPathGameExe[MAX_PATH]
-  , gPathLayerConfig[MAX_PATH]
   , gPathData[MAX_PATH]
   , gPathMods[MAX_PATH]
   , gPathGuiIni[MAX_PATH];
@@ -358,10 +357,40 @@ void HTiOptionsWriteToFile(
 
 extern HTHandle hKeyMenuToggle;
 
-// Install hooks on WinAPI functions that we need. Setup procedure is in the
-// detour functions on CreateWindowEx().
-void HTiSetupWinHooks();
-// Scan and load mods into the game, then initialize all loaded mods.
+// Check if the backend expects the process module name.
+// Used to quickly confirm whether full functionality needs to be enabled.
+int HTiBackendExpectProcess();
+
+// Backend critical section implementation.
+//
+// The following functions must be invoked in pairs; each call to
+// `HTiBackendGLEnterCritical()` must be subsequently matched by a call to
+// `HTiBackendGLLeaveCritical()`.
+//
+// The backend must check the return value of `HTiBackendGLEnterCritical()` to
+// determine if ImGui requires initialization.
+int HTiBackendGLEnterCritical();
+int HTiBackendGLLeaveCritical();
+
+// Call this function to send event to the HTML after ImGui initialization is
+// completed.
+int HTiBackendGLInitComplete();
+
+// Check if the mod is compatible with the target game version.
+int HTiBackendCheckEdition(
+  HTGameEdition);
+int HTiBackendSetEditionCheckFunc(
+  PFN_HTVoidFunction);
+
+// Setup all enabled backends.
+int HTiBackendSetupAll();
+
+// Set the game status.
+void HTiSetGameStatus(
+  HTGameStatus *);
+
+// Scan and load mods into the game, then initialize all loaded mods. Called by
+// backends.
 void HTiSetupAll();
 
 // Register the loader itself as a single mod. The package name of the loader

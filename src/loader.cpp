@@ -154,6 +154,10 @@ static void scanMods() {
     if (!HTiFileExists(manifest.paths.dll.data()))
       continue;
 
+    if (!HTiBackendCheckEdition(manifest.gameEditionFlags))
+      // Skip mods that not compatible with current game edition.
+      continue;
+
     // When scanning mods, the mod data won't be accessed by multiple threads,
     // so we don't need to protect it.
     if (gModDataLoader.find(manifest.meta.packageName) != gModDataLoader.end()) {
@@ -198,9 +202,6 @@ static void expandMods() {
     if (it->second.meta.packageName == HTTexts_ModLoaderPackageName)
       // The data of mod loader itself is set in bootstrap(), so we don't need
       // to load it again.
-      continue;
-    if (!(it->second.gameEditionFlags & gGameStatus.edition))
-      // Skip mods that not compatible with current game edition.
       continue;
 
     // Load library.

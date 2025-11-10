@@ -16,8 +16,8 @@
 // Mod loader version.
 // Version number is used for pre-processing statements handling version
 // compatibility.
-#define HTML_VERSION 10601
-#define HTML_VERSION_NAME "1.7.0 WIP"
+#define HTML_VERSION 10701
+#define HTML_VERSION_NAME "1.8.0 WIP"
 
 #define HTMLAPI __stdcall
 #ifndef HTMLAPIATTR
@@ -42,15 +42,13 @@ typedef enum {
   HT_SUCCESS = 1
 } HTStatus;
 
-// Game editions.
-typedef enum {
-  // Uninitialized state.
-  HT_EDITION_UNKNOWN = 0,
-  // Chinese edition.
-  HT_EDITION_CHINESE,
-  // International edition.
-  HT_EDITION_INTERNATIONAL
-} HTGameEdition;
+// Game editions. Defined by backends.
+typedef int HTGameEdition;
+
+// Uninitialized state.
+#define HT_ImplNull_EditionUnknown 0
+// Only for debug use, don't check edition compatibility.
+#define HT_ImplNull_EditionAll 0xFFFFFFFF
 
 // Game status.
 typedef struct {

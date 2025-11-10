@@ -268,6 +268,10 @@ void HTiMenuModList() {
   for (auto it = gModDataLoader.begin(); it != gModDataLoader.end(); ++it, i++) {
     ModManifest &manifest = it->second;
 
+    // Don't display mods that isn't expanded successfully.
+    if (!manifest.runtime)
+      continue;
+
     // Show mod info.
     ImGuiID childId = ImGui::GetID((void *)(u64)i);
     ImGui::BeginChild(

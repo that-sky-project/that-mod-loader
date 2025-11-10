@@ -19,16 +19,26 @@ struct ConsoleChar {
   // Only for create object easily.
   ConsoleChar(char ch, ImU32 c): chByte(ch), color(c) { }
 };
+struct ConsoleLine {
+  std::vector<ConsoleChar> s;
+  i32 repeatCount;
 
-typedef std::vector<ConsoleChar> ConsoleLine;
+  ConsoleLine(): repeatCount(1) { }
+};
 typedef std::vector<ConsoleLine> ConsoleText;
 
-static ConsoleText gText;
-static bool scrollEnd = false;
 static std::shared_mutex gMutex;
+
+static ConsoleText gText;
+static bool gScrollEnd = false;
 static f32 gLastTextHeight = 0;
 
-static bool checkColorMark(ConsoleLine &charBuf) {
+static struct {
+  char *line;
+  bool raw;
+} gLastLine = {0};
+
+static bool checkColorMark(std::vector<ConsoleChar> &charBuf) {
   // The byte sequence of '§'.
   return (
     charBuf.size() == 2
@@ -148,7 +158,7 @@ static void textFormat(
           // Enter the color code escape sequence and skip the character '§'.
           insideEscape = 1;
         else {
-          line.insert(line.end(), charBuffer.begin(), charBuffer.end());
+          line.s.insert(line.s.end(), charBuffer.begin(), charBuffer.end());
         }
         // Push parsed character.
         charBuffer.clear();
@@ -158,7 +168,7 @@ static void textFormat(
 
   if (!charBuffer.empty()) {
     // Push unfinished character.
-    line.insert(line.end(), charBuffer.begin(), charBuffer.end());
+    line.s.insert(line.s.end(), charBuffer.begin(), charBuffer.end());
     charBuffer.clear();
   }
 
@@ -174,7 +184,7 @@ static void textFormatRaw(
   ConsoleLine line;
 
   for (u64 i = 0; i < length; i++)
-    line.push_back(ConsoleChar(str[i], color));
+    line.s.push_back(ConsoleChar(str[i], color));
 
   gText.push_back(line);
 }
@@ -216,7 +226,7 @@ static void textFormatInto(
 }
 
 void HTiConsoleScrollEnd() {
-  scrollEnd = true;
+  gScrollEnd = true;
 }
 
 void HTiRenderConsoleTexts() {
@@ -255,26 +265,34 @@ void HTiRenderConsoleTexts() {
     return;
   }
 
-  ImU32 prevColor;
+  ImU32 prevColor = 0xFFFFFFFF;
   std::string lineBuffer;
   for (i32 i = 0; i < (i32)gText.size(); i++) {
     ConsoleLine &line = gText[i];
-    ImVec2 lineStartScreenPos = ImVec2(cursorScreenPos.x, cursorScreenPos.y + i * lineHeight);
-    ImVec2 textScreenPos = ImVec2(lineStartScreenPos.x + MARGIN_LEFT, lineStartScreenPos.y);
-    ImVec2 textPosOffset(0, 0);
+    ImVec2 lineStartScreenPos = ImVec2(cursorScreenPos.x, cursorScreenPos.y + i * lineHeight)
+      , textScreenPos = ImVec2(lineStartScreenPos.x + MARGIN_LEFT, lineStartScreenPos.y)
+      , textPosOffset(0, 0);
 
     if (i < lineBegin || i > lineEnd) {
       // If the line is invisible, then just calculate its width.
-      for (u64 j = 0; j < line.size(); )
-        lineBuffer.push_back(line[j++].chByte);
+      for (u64 j = 0; j < line.s.size(); )
+        lineBuffer.push_back(line.s[j++].chByte);
+
       textPosOffset.x += ImGui::CalcTextSize(lineBuffer.c_str()).x;
       totalWidth = std::max(totalWidth, textPosOffset.x);
       lineBuffer.clear();
       continue;
     }
 
-    for (u64 j = 0; j < line.size(); ) {
-      ConsoleChar &data = line[j];
+    if (line.repeatCount > 1) {
+      // Show the repeat count.
+      lineBuffer.resize(20);
+      i32 len = sprintf(lineBuffer.data(), "(x%d) ", line.repeatCount);
+      lineBuffer.resize(len);
+    }
+
+    for (u64 j = 0; j < line.s.size(); ) {
+      ConsoleChar &data = line.s[j];
       ImU32 color = data.color;
 
       if ((color != prevColor || data.chByte == '\t' || data.chByte == ' ') && !lineBuffer.empty()) {
@@ -300,7 +318,7 @@ void HTiRenderConsoleTexts() {
         // Push a byte sequence representing a single character.
         u08 l = utf8CharLen(data.chByte);
         while (l-- > 0)
-          lineBuffer.push_back(line[j++].chByte);
+          lineBuffer.push_back(line.s[j++].chByte);
       }
     }
 
@@ -323,12 +341,12 @@ void HTiRenderConsoleTexts() {
   f32 textHeight = gText.size() * lineHeight;
   ImGui::Dummy(ImVec2(totalWidth, textHeight));
 
-  if (scrollEnd) {
+  if (gScrollEnd) {
     // ImGui::GetScrollMaxY() is calculated from the last frame's height, so
     // we need to add increased text heights in current frame.
     ImGui::SetScrollX(0);
     ImGui::SetScrollY(ImGui::GetScrollMaxY() + std::max(0.0f, textHeight - gLastTextHeight));
-    scrollEnd = false;
+    gScrollEnd = false;
   }
 
   gLastTextHeight = textHeight;
@@ -347,6 +365,7 @@ void HTiAddConsoleLineV(
   va_list argDup;
   char *buffer;
   size_t len;
+  bool repeated = false;
 
   va_copy(argDup, args);
 
@@ -365,12 +384,26 @@ void HTiAddConsoleLineV(
     // Remove the earliest line if the maximum number of lines is reached.
     gText.erase(gText.begin());
 
-  // Add our new line.
-  textFormatInto(buffer, 0xFFFFFFFF, raw);
+  if (!gLastLine.line) {
+    // If the console is empty, save current line as the last line.
+    gLastLine.line = buffer;
+    textFormatInto(buffer, 0xFFFFFFFF, raw);
+  } else if (!strcmp(gLastLine.line, buffer) && gLastLine.raw == raw) {
+    // Repeated line, free current buffer and increase repeat count.
+    if (!gText.empty())
+      gText.back().repeatCount++;
+    ImGui::MemFree(buffer);
+    repeated = true;
+  } else {
+    // Free the old line and add our new line.
+    ImGui::MemFree(gLastLine.line);
+    textFormatInto(buffer, 0xFFFFFFFF, raw);
+    gLastLine.line = buffer;
+  }
 
-  ImGui::MemFree(buffer);
-
-  HTiConsoleScrollEnd();
+  if (!repeated)
+    // Scroll to the end only when new line was actually added.
+    HTiConsoleScrollEnd();
 }
 
 void HTiAddConsoleLine(
@@ -387,5 +420,12 @@ void HTiAddConsoleLine(
 
 void HTiClearConsole() {
   std::unique_lock<std::shared_mutex> lock(gMutex);
+
   gText.clear();
+
+  if (gLastLine.line)
+    ImGui::MemFree(gLastLine.line);
+  gLastLine.line = nullptr;
+
+  HTiConsoleScrollEnd();
 }
