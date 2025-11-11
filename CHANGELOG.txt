@@ -6,6 +6,10 @@ This file contains the changelog of HTModLoader.
 -------------------------------------------------------------------------------
 
 Changes:
+- Added HTDataStoreStringKey() and HTDataGetStringKey().
+- Added demo for HTDataStore() and HTDataGet().
+- Added HTDataStore() and HTDataGet() to save persistent data.
+- Introduced LevelDB and ZLib.
 - Added game backend for MCBE Chinese Edition.
 - Added `HT_ImplNull_EditionAll` to ignore edition check.
 - Added more backend functions to allow backends to customize game edition check

@@ -66,7 +66,7 @@ static i32 deserializeManifestJson(
   parsedStr = cJSON_GetStringValue(cJSON_GetObjectItemCaseSensitive(json, "main"));
   if (!parsedStr)
     goto RET;
-  manifest->paths.dll = manifest->paths.folder + L"\\" + utf8ToWchar(parsedStr);
+  manifest->paths.dll = manifest->paths.folder + L"\\" + HTiUtf8ToWstring(parsedStr);
 
   // Get package name.
   manifest->meta.packageName = getStringValueFrom(json, "package_name");

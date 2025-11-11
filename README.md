@@ -19,6 +19,12 @@ Use HTML to execute code before the game does.
 4. Place each mod in a separated folder within `mods`. Every mod should contain an executable file (dll) and a `manifest.json` at least.
 5. Start the game, and view loaded mods in `HTML Main Menu`.
 
+## Build
+Use MinGW-w64 15.1.0 to build the project.
+1. Clone the repository.
+2. Change the working directory to `HTML-Sky`, then execute `mingw32-make.exe all` on the first compilation.
+3. If you have some issues on `libraries/leveldb/lib/leveldb.lib`, clone and build `https://github.com/extremeheat/leveldb-mcpe.git`, and replace `leveldb.lib` with your own building. HTModLoader uses C API of leveldb-mcpe only, so we don't care about binary compatibility.
+
 ## FAQ
 ### How to create a mod?
 1. Download the latest HTML SDK zip in [releases](https://www.github.com/HTMonkeyG/HTML-Sky/releases/latest).

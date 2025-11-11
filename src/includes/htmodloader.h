@@ -739,6 +739,54 @@ HTMLAPIATTR HTStatus HTMLAPI HTTellRawV(
   LPCSTR format,
   va_list v);
 
+// ----------------------------------------------------------------------------
+// [SECTION] HTML persistent data storage APIs.
+// ----------------------------------------------------------------------------
+
+/**
+ * Store the given data into LevelDB with the given key.
+ * 
+ * Both the key and value is considered as a binary buffer.
+ */
+HTMLAPIATTR HTStatus HTMLAPI HTDataStore(
+  HMODULE hModule,
+  const char *key,
+  UINT64 keyLen,
+  const char *value,
+  UINT64 valueLen);
+
+/**
+ * Get a stored value with given key.
+ */
+HTMLAPIATTR char *HTMLAPI HTDataGet(
+  HMODULE hModule,
+  const char *key,
+  UINT64 keyLen,
+  UINT64 *valueLen);
+
+/**
+ * The key's length is calculated automatically by HTDataStoreStringKey()
+ * and HTDataGetStringKey().
+ * 
+ * The key's length don't include the zero terminator.
+ */
+HTMLAPIATTR HTStatus HTMLAPI HTDataStoreStringKey(
+  HMODULE hModule,
+  const char *key,
+  const char *value,
+  UINT64 valueLen);
+
+HTMLAPIATTR char *HTMLAPI HTDataGetStringKey(
+  HMODULE hModule,
+  const char *key,
+  UINT64 *valueLen);
+
+/**
+ * Free the pointer returned by HTDataGet().
+ */
+HTMLAPIATTR void HTMLAPI HTDataFree(
+  char *value);
+
 #ifdef __cplusplus
 }
 #endif

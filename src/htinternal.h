@@ -83,7 +83,7 @@ static inline void wcstoutf8(
 }
 
 // Convert UTF-8 to UTF-16LE, returned std::wstring.
-static inline std::wstring utf8ToWchar(
+static inline std::wstring HTiUtf8ToWstring(
   const char *input
 ) {
   if (!input)
@@ -97,7 +97,7 @@ static inline std::wstring utf8ToWchar(
 }
 
 // Convert UTF-16LE to UTF-8, returned std::string.
-static inline std::string wcharToUtf8(
+static inline std::string HTiWstringToUtf8(
   const wchar_t *input
 ) {
   if (!input)
@@ -105,7 +105,7 @@ static inline std::string wcharToUtf8(
   std::string result;
   i32 size = WideCharToMultiByte(CP_UTF8, 0, input, -1, nullptr, 0, nullptr, nullptr);
   result.resize(size);
-  WideCharToMultiByte(CP_UTF8, 0, input, -1, &result[0], size, nullptr, nullptr);
+  WideCharToMultiByte(CP_UTF8, 0, input, -1, result.data(), size, nullptr, nullptr);
   return result;
 }
 
@@ -481,6 +481,13 @@ void HTiHotkeyDispatch(
 // Set key event cooldown.
 void HTiHotkeyUpdateCooldown();
 void HTiHotkeySetCooldown();
+
+// ----------------------------------------------------------------------------
+// [SECTION] LevelDB functions.
+// ----------------------------------------------------------------------------
+
+i32 HTiInitLDB();
+i32 HTiDeinitLDB();
 
 #ifdef __cplusplus
 }
