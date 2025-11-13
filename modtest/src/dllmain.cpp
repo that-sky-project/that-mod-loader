@@ -5,6 +5,8 @@
 static HTHandle hKeyTest = nullptr;
 static HMODULE hModuleDll = nullptr;
 static char gVersionRtName[10] = {0};
+static char gGameBackendName[32] = {0};
+static char gGLBackendName[32] = {0};
 static unsigned int gVersionRtNum = 0;
 static HTKeyEventFlags gLastKeyEventFlags = 0;
 static HTKeyEventPreventFlags gKeyEventPreventFlags = 0;
@@ -19,8 +21,9 @@ static void HTTestShowMainWindow(
 
   ImGui::Text("HT Mod Loader test mod.");
   ImGui::Text("FPS %.1f", 1.0 / timeElapsed);
-  ImGui::Text("This mod has benn compiled with HTModLoader SDK v%s (%d).", HTML_VERSION_NAME, HTML_VERSION);
+  ImGui::Text("This mod has been compiled with HTModLoader SDK v%s (%d).", HTML_VERSION_NAME, HTML_VERSION);
   ImGui::Text("This mod is running on HTModLoader v%s (%d).", gVersionRtName, gVersionRtNum);
+  ImGui::Text("GL backend: %s, Game backend: %s", gGLBackendName, gGameBackendName);
 
   if (ImGui::CollapsingHeader("Help")) {
     ImGui::SeparatorText("ABOUT THIS DEMO:");
@@ -85,6 +88,8 @@ static void HTTestShowMainWindow(
         HTOptionGetCustom(hModuleDll, "modtest:optionDouble", HTOptionType_Double, (void *)&optionDouble, NULL);
         HTOptionGetCustom(hModuleDll, "modtest:optionBool", HTOptionType_Bool, (void *)&optionBool, NULL);
       }
+
+      ImGui::TreePop();
     }
 
     if (ImGui::TreeNode("LevelDB")) {
@@ -105,6 +110,8 @@ static void HTTestShowMainWindow(
         memcpy_s(data, sizeof(data), dataRead, length);
         HTDataFree(dataRead);
       }
+
+      ImGui::TreePop();
     }
   }
 
@@ -144,6 +151,9 @@ __declspec(dllexport) HTStatus HTMLAPI HTModOnEnable(
   void *
 ) {
   HTTellText("HT Mod Test on enable.");
+  HTGetActiveBackendName(
+    gGLBackendName,
+    gGameBackendName);
   return HT_SUCCESS;
 }
 

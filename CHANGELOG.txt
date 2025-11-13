@@ -6,6 +6,7 @@ This file contains the changelog of HTModLoader.
 -------------------------------------------------------------------------------
 
 Changes:
+- Added demo for HTGetActiveBackendName().
 - Added HTGetActiveBackendName() to get currently active backends.
 - Fixed incorrect render of ImGui when the game changes glColorMask.
 - Fixed incorrect function name `utf8ToWchar` in html_impl_vklayer.

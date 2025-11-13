@@ -175,6 +175,7 @@ int HTi_ImplOpenGL3_Init() {
 int HTi_ImplOpenGL3_Shutdown() {
   // Free opengl32.dll
   FreeLibrary(hDllOpengl32);
+  return 1;
 }
 
 #endif
