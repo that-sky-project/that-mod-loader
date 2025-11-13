@@ -2,28 +2,30 @@ This file contains the changelog of HTModLoader.
 
 
 -------------------------------------------------------------------------------
- Version 1.8.0 WIP
+ Version 1.8.0
 -------------------------------------------------------------------------------
 
-Changes:
+Breaking Changes:
 - Added demo for HTGetActiveBackendName().
 - Added HTGetActiveBackendName() to get currently active backends.
 - Fixed incorrect render of ImGui when the game changes glColorMask.
-- Fixed incorrect function name `utf8ToWchar` in html_impl_vklayer.
 - Changed gameEditionFlag to int32_t to allow more games.
 - Added OpenGL3 backend.
-- Added HTDataStoreStringKey() and HTDataGetStringKey().
-- Added demo for HTDataStore() and HTDataGet().
-- Added HTDataStore() and HTDataGet() to save persistent data.
-- Introduced LevelDB and ZLib.
 - Added game backend for MCBE Chinese Edition.
 - Added `HT_ImplNull_EditionAll` to ignore edition check.
 - Added more backend functions to allow backends to customize game edition check
   and ImGui initialize.
-- Vulkan layer implementaion will create `html-config.json` if missing.
 - Use `htconfig.h` to enable or disable backends.
 - Allow customization of game and renderer backend code except for Sky:CotL.
 - Transfer all game related and platform related code to the `backends` folder.
+
+Other Changes:
+- Fixed incorrect function name `utf8ToWchar` in html_impl_vklayer.
+- Added HTDataStoreStringKey() and HTDataGetStringKey().
+- Added demo for HTDataStore() and HTDataGet().
+- Added HTDataStore() and HTDataGet() to save persistent data.
+- Introduced LevelDB and ZLib.
+- Vulkan layer implementaion will create `html-config.json` if missing.
 
 
 -------------------------------------------------------------------------------
