@@ -6,6 +6,7 @@ This file contains the changelog of HTModLoader.
 -------------------------------------------------------------------------------
 
 Changes:
+- Changed glnull backend to not compile by default.
 - Added "null" backends as templates.
 - Fixed the unchanged module name in signature scanning.
 

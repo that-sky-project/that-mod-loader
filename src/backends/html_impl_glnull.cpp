@@ -12,16 +12,21 @@
 #include "includes/htconfig.h"
 
 //#ifdef USE_IMPL_NULLGL
-#if 1
+#if 0
 
 static bool gInit = false;
 
 static void fakeRenderGui() {
   if (!gInit) {
     // Initialize the ImGui context if not. The backend can set a local flag
-    // to execute only once, 
+    // to execute HTiInitGUI() once.
     gInit = true;
     HTiInitGUI();
+
+    // Backends can put its own initialization codes here, like changing the
+    // styles and color.
+    ImGuiIO &io = ImGui::GetIO();
+    (void)io;
   }
 
   // Enter the critical zone and initialize the backend data of ImGui.
