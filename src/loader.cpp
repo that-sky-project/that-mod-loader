@@ -153,7 +153,7 @@ static void scanMods() {
     if (!wcscmp(findData.cFileName, L".") || !wcscmp(findData.cFileName, L".."))
       continue;
 
-    LOGI("Found potential mod folder: %s\n", findData.cFileName);
+    LOGI("Found potential mod folder: %ls\n", findData.cFileName);
 
     if (!parseModManifest(findData.cFileName, &manifest))
       continue;

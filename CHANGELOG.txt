@@ -5,6 +5,9 @@ This file contains the changelog of HTModLoader.
  Version 1.9.0 WIP
 -------------------------------------------------------------------------------
 
+Changes:
+- Fixed the wrong placeholder during log printing when scanning the mods.
+
 
 -------------------------------------------------------------------------------
  Version 1.8.2
