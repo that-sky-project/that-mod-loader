@@ -63,6 +63,9 @@ $(DIST_DIR)/%.o: %.cpp $(CXX_HEADER)
 	@echo Compiling file "$<" ...
 	@$(CXX) $(CFLAGS) -c $< -o $@
 
+$(DIST_DIR):
+	-@mkdir dist
+
 clean_all: clean_libs clean
 
 clean:
@@ -70,7 +73,7 @@ clean:
 	-@del .\dist\*.dll
 	-@del .\dist\*.lib
 
-all: libs
+all: $(DIST_DIR) libs
 	-@$(MAKE) $(BIN_TARGET)
 
 libs:

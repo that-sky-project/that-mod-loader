@@ -115,7 +115,7 @@ BOOL APIENTRY DllMain(
 
     // No log file and console by default.
 #ifdef HTML_ENABLE_LOGGER
-    HTiInitLogger(nullptr, 0);
+    HTiInitLogger(L"html-log.log", 0);
 #endif
     LOGI("HTML attatched.\n");
 
