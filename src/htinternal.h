@@ -231,12 +231,6 @@ struct ModInternalFunctions {
   PFN_HTModRenderGui pfn_HTModRenderGui;
 };
 
-// Assembly patch manager of a mod.
-struct ModAsmManager {
-  HMODULE owner;
-  u64 refCount;
-};
-
 // Registered key bind of a mod.
 struct ModKeyBind {
   // Key internal identifier. May be prewritten.
@@ -325,6 +319,10 @@ static inline bool HTiCheckHandleType(
     return true;
   return it->second == type;
 }
+
+// Remove all event callbacks registered by the mod.
+void HTiRemoveAllEventCallbacksOf(
+  HMODULE hModuleOwner);
 
 // ----------------------------------------------------------------------------
 // [SECTION] Option loader declarations.

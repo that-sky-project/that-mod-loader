@@ -6,6 +6,8 @@ This file contains the changelog of HTModLoader.
 -------------------------------------------------------------------------------
 
 Changes:
+- Normalized all enum declarations.
+- Added module handle requirement for `HTCommOnEvent()` and `HTCommOffEvent()`.
 - Fixed the wrong placeholder during log printing when scanning the mods.
 
 

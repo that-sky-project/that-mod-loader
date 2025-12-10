@@ -122,12 +122,12 @@ HTMLAPIATTR void HTMLAPI HTGetModFolder(
 HTMLAPIATTR HMODULE HTMLAPI HTGetModuleHandle(
   LPCSTR module);
 
-typedef enum {
+typedef int HTModInfoFields;
+enum HTModInfoFields_ {
   HTModInfoFields_ModName = 1,
   HTModInfoFields_PackageName,
   HTModInfoFields_Folder
-} HTModInfoFields_;
-typedef UINT32 HTModInfoFields;
+};
 
 /**
  * Expand mod info from manifest.
@@ -155,7 +155,7 @@ HTMLAPIATTR void HTMLAPI HTGetActiveBackendName(
 
 // Error codes. Partially the same as winerror.h
 typedef int HTError;
-typedef enum {
+enum HTError_ {
   HTError_Success = 0,
   // ERROR_ACCESS_DENIED.
   HTError_AccessDenied = 5,
@@ -175,7 +175,7 @@ typedef enum {
   HTError_NoMoreMatches = 626,
   // ERROR_NOT_FOUND.
   HTError_NotFound = 1168
-} HTError_;
+};
 
 // Set the last error code of HTML API.
 HTMLAPIATTR void HTMLAPI HTSetLastError(
@@ -205,12 +205,13 @@ typedef struct {
 HTMLAPIATTR HTStatus HTMLAPI HTImGuiDispatch(
   HTImGuiContexts *context);
 
-typedef enum {
+typedef int HTOptionType;
+enum HTOptionType_ {
   HTOptionType_Invalid = 0,
   HTOptionType_Bool,
   HTOptionType_Double,
   HTOptionType_String
-} HTOptionType;
+};
 
 /**
  * Get customized option value with the specified key.
@@ -249,14 +250,20 @@ HTMLAPIATTR HTStatus HTMLAPI HTOptionSetCustom(
 #define HT_ALL_HOOKS NULL
 
 // Method for obtaining the final address.
-typedef enum {
+typedef int HTSigScanType;
+enum HTSigScanType_ {
   // The Signature represents the function body.
-  HT_SCAN_DIRECT = 0,
+  HTSigScanType_Direct = 0,
   // The signature represents the E8 or E9 instruction that calls the function.
-  HT_SCAN_E8,
+  HTSigScanType_E8,
   // The signature represents the FF15 instruction that calls the function.
-  HT_SCAN_FF15,
-} HTSigScanType;
+  HTSigScanType_FF15,
+
+  // Reserved for compatibility.
+  HT_SCAN_DIRECT = HTSigScanType_Direct,
+  HT_SCAN_E8 = HTSigScanType_E8,
+  HT_SCAN_FF15 = HTSigScanType_FF15,
+};
 
 // Signature code config.
 typedef struct {
@@ -436,10 +443,14 @@ HTMLAPIATTR HTStatus HTMLAPI HTCommRegFunction(
  * 
  * The callback function should not modify the content pointed to by the
  * `data` pointer. The callback function must assume that the data pointer
- * is only valid before the callback function returns.
+ * is valid only before the callback function returns.
+ * 
+ * The calling order of event callbacks is uncertain, do not rely on the
+ * calling order.
  */
 HTMLAPIATTR HTStatus HTMLAPI HTCommOnEvent(
-  LPCSTR name,
+  HMODULE hModuleOwner,
+  LPCSTR id,
   PFN_HTEventCallback callback);
 
 #define HTCommAddEventListener HTCommOnEvent
@@ -448,18 +459,20 @@ HTMLAPIATTR HTStatus HTMLAPI HTCommOnEvent(
  * Remove a registered event listener.
  */
 HTMLAPIATTR HTStatus HTMLAPI HTCommOffEvent(
-  LPCSTR name,
+  HMODULE hModuleOwner,
+  LPCSTR id,
   PFN_HTEventCallback callback);
 
 #define HTCommRemoveEventListener HTCommOffEvent
-  
+
 /**
  * Trigger an event with specified data.
  * 
- * DO NOT emit the event itself in the callback function.
+ * DO NOT emit the event itself in the callback function, no matter directly
+ * or indirectly.
  */
 HTMLAPIATTR HTStatus HTMLAPI HTCommEmitEvent(
-  LPCSTR name,
+  LPCSTR id,
   LPVOID reserved,
   LPVOID data);
 
@@ -470,7 +483,8 @@ HTMLAPIATTR HTStatus HTMLAPI HTCommEmitEvent(
 // Modified from ImGui to keep compatibility.
 // NOTE: HTKeyCodes is not completely compatible with ImGuiKey, specially
 // in mouse inputs. Use HTKeyToImGuiKey() to convert to ImGuiKey.
-typedef enum {
+typedef int HTKeyCode;
+enum HTKeyCode_ {
   HTKey_None = 0,
 
   HTKey_NamedKey_BEGIN = 512,
@@ -572,11 +586,11 @@ typedef enum {
   HTKeyMod_Alt = 1 << 14,
   // Windows/Super (non-macOS), Ctrl (macOS)
   HTKeyMod_Super = 1 << 15,
-} HTKeyCode;
+};
 
 // Key event properties.
-typedef UINT32 HTKeyEventFlags;
-typedef enum {
+typedef int HTKeyEventFlags;
+enum HTKeyEventFlags_ {
   HTKeyEventFlags_None = 0,
   HTKeyEventFlags_Down,
   HTKeyEventFlags_Up,
@@ -592,11 +606,11 @@ typedef enum {
   HTKeyEventFlags_Repeat = 1 << 16,
   HTKeyEventFlags_Blocked = 1 << 17,
   HTKeyEventFlags_Mask = 0xFFFF
-} HTKeyEventFlags_;
+};
 
 // Key binding flags.
-typedef UINT32 HTHotkeyFlags;
-typedef enum {
+typedef int HTHotkeyFlags;
+enum HTHotkeyFlags_ {
   // Default value. The KeyDown events will be blocked when any ImGui window is
   // focused, due to io.WantCaptureKeyboard and io.WantCaptureMouse flags. Set
   // this flag when you want the key bind is only avaliable "in game".
@@ -606,11 +620,11 @@ typedef enum {
   HTHotkeyFlags_NoBlock = 1 << 0,
   // Reserved.
   HTHotkeyFlags_BlockKeyUp = 1 << 1
-} HTHotkeyFlags_;
+};
 
 // Determine how to intercept the key message.
-typedef UINT32 HTKeyEventPreventFlags;
-typedef enum {
+typedef int HTKeyEventPreventFlags;
+enum HTKeyEventPreventFlags_ {
   // Pass the event as normal.
   HTKeyEventPreventFlags_None = 0,
   // Prevent the game from receiving the key message. Setting this flag in any
@@ -620,7 +634,7 @@ typedef enum {
   // message. We do not ensure the order of the callbacks, so this flag may
   // affect other mod's behaviour uncontrollable.
   HTKeyEventPreventFlags_Next = 1 << 1,
-} HTKeyEventPreventFlags_;
+};
 
 // Key event data.
 typedef struct {
