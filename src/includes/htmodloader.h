@@ -318,6 +318,13 @@ HTMLAPIATTR LPVOID HTMLAPI HTSigScan(
   const HTAsmSig *signature);
 
 /**
+ * Scan with signature and specified module name.
+ */
+HTMLAPIATTR LPVOID HTMLAPI HTSigScanEx(
+  const wchar_t *moduleName,
+  const HTAsmSig *signature);
+
+/**
  * Scan a single function.
  */
 HTMLAPIATTR LPVOID HTMLAPI HTSigScanFunc(

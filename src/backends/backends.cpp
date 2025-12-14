@@ -19,7 +19,7 @@ static PFN_HTiGameEditionCheck gEditionCheck = checkEditionDefault;
 
 char gActiveGameBackendName[32] = {0};
 char gActiveGLBackendName[32] = {0};
-std::string gGameProcessName;
+std::wstring gGameProcessName;
 
 static i32 checkEditionDefault(
   HTGameEdition edition
@@ -71,13 +71,23 @@ int HTiSetGameBackendName(
 ) {
   strncpy(gActiveGameBackendName, game, 31);
   gActiveGameBackendName[31] = 0;
+
   return 1;
 }
 
 int HTiSetGameProcessName(
   const char *name
 ) {
+  gGameProcessName = HTiUtf8ToWstring(name);
+
+  return 1;
+}
+
+int HTiSetGameProcessName(
+  const wchar_t *name
+) {
   gGameProcessName = name;
+
   return 1;
 }
 

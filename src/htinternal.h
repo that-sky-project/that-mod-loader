@@ -15,10 +15,6 @@
 #include "includes/htconfig.h"
 #include "htaliases.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 // ----------------------------------------------------------------------------
 // [SECTION] Mod loader logger.
 // ----------------------------------------------------------------------------
@@ -354,11 +350,13 @@ void HTiOptionsWriteToFile(
 // [SECTION] Bootstrap and setup declarations.
 // ----------------------------------------------------------------------------
 
+// Handle of the menu key.
 extern HTHandle hKeyMenuToggle;
 
+// Backend related data.
 extern char gActiveGameBackendName[32];
 extern char gActiveGLBackendName[32];
-extern std::string gGameProcessName;
+extern std::wstring gGameProcessName;
 
 // Set the name of currently active backends.
 // Backends should call these functions after it's actived.
@@ -371,6 +369,10 @@ int HTiSetGLBackendName(
 // codes in the executable file of the game.
 int HTiSetGameProcessName(
   const char *);
+
+// Set the name of the game executable file with wchar_t.
+int HTiSetGameProcessName(
+  const wchar_t *);
 
 // Check if the backend expects the process module name.
 // Used to quickly confirm whether full functionality needs to be enabled.
@@ -503,9 +505,5 @@ void HTiHotkeySetCooldown();
 
 i32 HTiInitLDB();
 i32 HTiDeinitLDB();
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif
