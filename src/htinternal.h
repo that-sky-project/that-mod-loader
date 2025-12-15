@@ -19,6 +19,10 @@
 // [SECTION] Mod loader logger.
 // ----------------------------------------------------------------------------
 
+#ifdef HTML_ENABLE_LOGGER
+#define LOG(format, ...) HTiLogA(format, ##__VA_ARGS__)
+#define WLOG(format, ...) HTiLogW(format, ##__VA_ARGS__)
+
 #define LOGI(format, ...) HTiLogA("[INFO] " format, ##__VA_ARGS__)
 #define WLOGI(format, ...) HTiLogW(L"[INFO] " format, ##__VA_ARGS__)
 #define LOGW(format, ...) HTiLogA("[WARN] " format, ##__VA_ARGS__)
@@ -27,6 +31,19 @@
 #define WLOGE(format, ...) HTiLogW(L"[ERR] " format, ##__VA_ARGS__)
 #define LOGEF(format, ...) HTiLogA("[ERR][FATAL] " format, ##__VA_ARGS__)
 #define WLOGEF(format, ...) HTiLogW(L"[ERR][FATAL] " format, ##__VA_ARGS__)
+#else
+#define LOG(format, ...) 
+#define WLOG(format, ...)
+
+#define LOGI(format, ...)
+#define WLOGI(format, ...)
+#define LOGW(format, ...)
+#define WLOGW(format, ...)
+#define LOGE(format, ...)
+#define WLOGE(format, ...)
+#define LOGEF(format, ...)
+#define WLOGEF(format, ...)
+#endif
 
 void HTiInitLogger(
   const wchar_t *fileName,
@@ -165,7 +182,7 @@ std::wstring HTiPathJoin(
 std::wstring HTiPathResolve(
   const std::vector<std::wstring> &);
 
-// returns the relative path from `from` to `to` based on the current working
+// Returns the relative path from `from` to `to` based on the current working
 // directory. If from and to each resolve to the same path (after calling
 // `HTiPathResolve()` on each), a zero-length string is returned.
 // If a zero-length string is passed as from or to, the current working directory
