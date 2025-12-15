@@ -165,13 +165,17 @@ std::wstring HTiPathJoin(
 std::wstring HTiPathResolve(
   const std::vector<std::wstring> &);
 
-// returns the relative path from from to to based on the current working
+// returns the relative path from `from` to `to` based on the current working
 // directory. If from and to each resolve to the same path (after calling
 // `HTiPathResolve()` on each), a zero-length string is returned.
 // If a zero-length string is passed as from or to, the current working directory
 // will be used instead of the zero-length strings.
 std::wstring HTiPathRelative(
-  const std::wstring &,
+  const std::wstring &from,
+  const std::wstring &to);
+
+// Determines if the literal path is absolute.
+bool HTiPathIsAbsolute(
   const std::wstring &);
 
 // ----------------------------------------------------------------------------

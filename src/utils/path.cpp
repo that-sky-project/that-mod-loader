@@ -35,7 +35,7 @@ static std::wstring toLowerCase(
     return L"";
 
   std::wstring result;
-  result.reserve(s.size());
+  result.resize(s.size());
 
   for (size_t i = 0; i < s.size(); i++)
     result[i] = std::tolower(s[i]);
@@ -383,7 +383,8 @@ std::wstring HTiPathNormalize(
       if (index == len - 1 || isPathSeparator(path[index + 1])) {
         return L".\\" + tail;
       }
-    } while (index = path.find(L':') != std::wstring::npos);
+      index = path.find(L':');
+    } while (index != std::wstring::npos);
   }
 
   size_t colonIndex = path.find(L':');
@@ -741,7 +742,7 @@ std::wstring HTiPathRelative(
 
   // Compare paths to find the longest common path from root.
   size_t length = std::min(fromLen, toLen);
-  size_t lastCommonSep = -1;
+  size_t lastCommonSep = std::wstring::npos;
   size_t i = 0;
   for (; i < length; i++) {
     auto fromCode = from[fromStart + i];
@@ -754,7 +755,7 @@ std::wstring HTiPathRelative(
   // We found a mismatch before the first common path separator was seen, so
   // return the original `to`.
   if (i != length) {
-    if (lastCommonSep == -1)
+    if (lastCommonSep == std::wstring::npos)
       return toOrig;
   } else {
     if (toLen > length) {
@@ -780,7 +781,7 @@ std::wstring HTiPathRelative(
         lastCommonSep = 3;
       }
     }
-    if (lastCommonSep == -1)
+    if (lastCommonSep == std::wstring::npos)
       lastCommonSep = 0;
   }
 
@@ -803,4 +804,20 @@ std::wstring HTiPathRelative(
   if (toOrig[toStart] == L'\\')
     toStart++;
   return toOrig.substr(toStart, toEnd - toStart);
+}
+
+bool HTiPathIsAbsolute(
+  const std::wstring &path
+) {
+  if (path.empty())
+    return false;
+
+  auto code = path[0];
+  return isPathSeparator(code)
+    || (
+      path.size() > 2
+      && isWin32DeviceRoot(code)
+      && path[1] == L':'
+      && isPathSeparator(path[2])
+    );
 }

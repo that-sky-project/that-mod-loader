@@ -6,6 +6,7 @@ This file contains the changelog of HTModLoader.
 -------------------------------------------------------------------------------
 
 Changes:
+- Added `HTiPathIsAbsolute()`.
 - Added HTiPath functions to concat or resolve paths.
 - Added `HTSigScanEx()` to scan signature codes in other modules.
 - Changed `gGameProcessName` to wide string.
