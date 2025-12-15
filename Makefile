@@ -23,7 +23,7 @@ CC = gcc
 CXX = g++
 
 # Params.
-CFLAGS = -Wall -Wformat -Wno-unused-function -O3 -ffunction-sections -fdata-sections -static -flto=auto -s
+CFLAGS = -Wall -Wformat -Wno-unused-function -Wno-stringop-overread -O3 -ffunction-sections -fdata-sections -static -flto=auto -s
 CFLAGS += -I./src
 LFLAGS = -Wl,--gc-sections,-O3,--version-script,$(SRC_DIR)/exports.txt,--out-implib,$(DIST_DIR)/htmodloader.lib
 LFLAGS += -lgdi32 -ldwmapi -ld3dcompiler -lstdc++ -limm32

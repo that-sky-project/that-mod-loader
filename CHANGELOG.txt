@@ -6,6 +6,7 @@ This file contains the changelog of HTModLoader.
 -------------------------------------------------------------------------------
 
 Changes:
+- Added validations for dll path and package name.
 - Changed the LOG macros to empty when disabling logs.
 - Added `HTiPathIsAbsolute()`.
 - Added HTiPath functions to concat or resolve paths.
