@@ -222,7 +222,13 @@ void HTiMenuConsole() {
 // ----------------------------------------------------------------------------
 
 static void displayLoaderSettings() {
+#ifndef HTML_ENABLE_DEBUGGER
+  ImGui::BeginDisabled();
   ImGui::Checkbox("Show debugger", &gShowDebugger);
+  ImGui::EndDisabled();
+#else
+  ImGui::Checkbox("Show debugger", &gShowDebugger);
+#endif
 }
 
 /**

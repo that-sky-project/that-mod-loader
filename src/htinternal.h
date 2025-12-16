@@ -579,6 +579,13 @@ void HTiAddConsoleLine(
   const char *fmt,
   ...);
 
+#ifdef HTML_ENABLE_DEBUGGER
+
+// Debugger ui functions.
+void HTiRenderDebugger();
+
+#endif
+
 // ----------------------------------------------------------------------------
 // [SECTION] Input handler related functions.
 // ----------------------------------------------------------------------------

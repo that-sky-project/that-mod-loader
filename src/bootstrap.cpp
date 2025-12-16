@@ -46,7 +46,7 @@ void HTiBootstrap() {
     manifestSelf->meta.version);
   manifestSelf->author = "HTMonkeyG";
   manifestSelf->description = HTTexts_ModLoaderDesc;
-  manifestSelf->gameEditionFlags = 3;
+  manifestSelf->gameEditionFlags = HT_ImplNull_EditionAll;
   manifestSelf->modName = HTTexts_ModLoaderName;
   manifestSelf->runtime = runtimeSelf;
 

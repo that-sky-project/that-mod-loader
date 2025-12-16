@@ -49,3 +49,6 @@
 
 // Enable the logger.
 //#define HTML_ENABLE_LOGGER
+
+// Compile the debugger.
+#define HTML_ENABLE_DEBUGGER

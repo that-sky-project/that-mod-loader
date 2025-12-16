@@ -17,8 +17,14 @@ std::vector<ModHook> HTiAsmHookFindFor(
   HMODULE owner
 ) {
   HTLockReadable lock{gMutexAsm};
+  std::vector<ModHook> result;
 
-  return std::vector<ModHook>{};
+  for (auto &it: gHooks) {
+    if (it.second.owner == owner)
+      result.push_back(it.second);
+  }
+
+  return result;
 }
 
 static HTStatus createHook(
