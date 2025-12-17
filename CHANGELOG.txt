@@ -6,6 +6,7 @@ This file contains the changelog of HTModLoader.
 -------------------------------------------------------------------------------
 
 Changes:
+- Exposed HTiPath functions as HTPath functions.
 - Added debugger menu.
 - Optimized the implementation of HTAsmHook functions.
 - Added validations for dll path and package name.

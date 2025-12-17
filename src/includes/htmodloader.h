@@ -86,7 +86,7 @@ typedef struct {
 
 // Function prototype.
 typedef LPVOID (HTMLAPI *PFN_HTVoidFunction)(
-  void);
+  VOID);
 
 // Handle.
 typedef LPVOID HTHandle;
@@ -94,8 +94,8 @@ typedef LPVOID HTHandle;
 /* Mod exported function prototypes. */
 
 // Gui renderer.
-typedef void (HTMLAPI *PFN_HTModRenderGui)(
-  float, LPVOID);
+typedef VOID (HTMLAPI *PFN_HTModRenderGui)(
+  FLOAT, LPVOID);
 // Initialize event
 typedef HTStatus (HTMLAPI *PFN_HTModOnInit)(
   LPVOID);
@@ -106,26 +106,26 @@ typedef HTStatus (HTMLAPI *PFN_HTModOnEnable)(
 /**
  * Get the loader version which has loaded the mod.
  */
-HTMLAPIATTR void HTMLAPI HTGetLoaderVersion(
+HTMLAPIATTR VOID HTMLAPI HTGetLoaderVersion(
   UINT32 *result);
 
 /**
  * Get the loader version name which has loaded the mod.
  */
-HTMLAPIATTR void HTMLAPI HTGetLoaderVersionName(
+HTMLAPIATTR VOID HTMLAPI HTGetLoaderVersionName(
   LPSTR result,
   UINT32 max);
 
 /**
  * Get game status object.
  */
-HTMLAPIATTR void HTMLAPI HTGetGameStatus(
+HTMLAPIATTR VOID HTMLAPI HTGetGameStatus(
   HTGameStatus *status);
 
 /**
  * Get the folder where the game executable file is located.
  */
-HTMLAPIATTR void HTMLAPI HTGetGameExeFolder(
+HTMLAPIATTR VOID HTMLAPI HTGetGameExeFolder(
   LPSTR result,
   UINT64 maxLen);
 
@@ -133,7 +133,7 @@ HTMLAPIATTR void HTMLAPI HTGetGameExeFolder(
  * Get the folder where the mods is located. In most cases, the same as add
  * "\\htmods" to HTGetGameExeFolder()'s result.
  */
-HTMLAPIATTR void HTMLAPI HTGetModFolder(
+HTMLAPIATTR VOID HTMLAPI HTGetModFolder(
   LPSTR result,
   UINT64 maxLen);
 
@@ -171,7 +171,7 @@ HTMLAPIATTR UINT32 HTMLAPI HTGetModInfoFrom(
  * 
  * The name of the backends MUST NOT longer than 32 bytes, including '\0'.
  */
-HTMLAPIATTR void HTMLAPI HTGetActiveBackendName(
+HTMLAPIATTR VOID HTMLAPI HTGetActiveBackendName(
   LPSTR gl,
   LPSTR game);
 
@@ -200,7 +200,7 @@ enum HTError_ {
 };
 
 // Set the last error code of HTML API.
-HTMLAPIATTR void HTMLAPI HTSetLastError(
+HTMLAPIATTR VOID HTMLAPI HTSetLastError(
   HTError dwError);
 
 // Get the last error code of HTML API.
@@ -263,6 +263,65 @@ HTMLAPIATTR HTStatus HTMLAPI HTOptionSetCustom(
   LPCSTR key,
   HTOptionType type,
   LPCVOID data);
+
+/**
+ * Normalizes the given path, resolving '..' and '.' segments.
+ * 
+ * All HTPath functions will process the buffer size as follow:
+ * - When joined length > maxLen, the function won't write into the result buffer
+ * and returns 0.
+ * - When result == NULL, it returns the minimum needed buffer size, including '\0'.
+ * - Otherwise, the function returns the number of bytes written, including '\0'.
+ */
+HTMLAPIATTR UINT32 HTMLAPI HTPathNormalize(
+  LPWSTR result,
+  LPCWSTR path,
+  UINT32 maxLen);
+
+/**
+ * Joins all given path segments together using the platform-specific separator
+ * as a delimiter, then normalizes the resulting path.
+ * 
+ * `paths` is an array of string, the array must be zero-terminated:
+ * LPCWSTR paths[] = {
+ *   L"C:\\Users",
+ *   L"HTMonkeyG",
+ *   NULL
+ * };
+ */
+HTMLAPIATTR UINT32 HTMLAPI HTPathJoin(
+  LPWSTR result,
+  LPCWSTR *paths,
+  UINT32 maxLen);
+
+/**
+ * Resolves a sequence of paths or path segments into an absolute path.
+ */
+HTMLAPIATTR UINT32 HTMLAPI HTPathResolve(
+  LPWSTR result,
+  LPCWSTR *paths,
+  UINT32 maxLen);
+
+/**
+ * Returns the relative path from `from` to `to` based on the current working
+ * directory. If from and to each resolve to the same path (after calling
+ * `HTiPathResolve()` on each), a zero-length string is returned.
+ * 
+ * If a zero-length string is passed as from or to, the current working directory
+ * will be used instead of the zero-length strings.
+ */
+HTMLAPIATTR UINT32 HTMLAPI HTPathRelative(
+  LPWSTR result,
+  LPCWSTR path1,
+  LPCWSTR path2,
+  UINT32 maxLen);
+
+/**
+ * Determines if the literal path is absolute. Returns 1 if it's absolute, like
+ * "C:\a\b".
+ */
+HTMLAPIATTR UINT32 HTMLAPI HTPathIsAbsolute(
+  LPCWSTR path);
 
 // ----------------------------------------------------------------------------
 // [SECTION] HTML assembly patch APIs.
@@ -436,8 +495,8 @@ HTMLAPIATTR HTStatus HTMLAPI HTMemFree(
 // ----------------------------------------------------------------------------
 
 // Event callback.
-typedef void (HTMLAPI *PFN_HTEventCallback)(
-  const LPVOID data);
+typedef VOID (HTMLAPI *PFN_HTEventCallback)(
+  LPCVOID data);
 
 #define HT_INVALID_HANDLE NULL
 
@@ -675,7 +734,7 @@ typedef struct {
   HTKeyCode key;
   // [In] Is the event a key press event. This field has been deprecated, reserved
   // for compatibility.
-  unsigned char down;
+  UINT8 down;
   // [In] Key event flags, marked the type of this event.
   HTKeyEventFlags flags;
 
@@ -684,7 +743,7 @@ typedef struct {
 } HTKeyEvent;
 
 // Hotkey callback.
-typedef void (HTMLAPI *PFN_HTHotkeyCallback)(
+typedef VOID (HTMLAPI *PFN_HTHotkeyCallback)(
   HTKeyEvent *);
 
 /**
@@ -802,9 +861,9 @@ HTMLAPIATTR HTStatus HTMLAPI HTTellRawV(
  */
 HTMLAPIATTR HTStatus HTMLAPI HTDataStore(
   HMODULE hModule,
-  const char *key,
+  LPCSTR key,
   UINT64 keyLen,
-  const char *value,
+  LPCSTR value,
   UINT64 valueLen);
 
 /**
@@ -812,7 +871,7 @@ HTMLAPIATTR HTStatus HTMLAPI HTDataStore(
  */
 HTMLAPIATTR char *HTMLAPI HTDataGet(
   HMODULE hModule,
-  const char *key,
+  LPCSTR key,
   UINT64 keyLen,
   UINT64 *valueLen);
 
@@ -824,19 +883,19 @@ HTMLAPIATTR char *HTMLAPI HTDataGet(
  */
 HTMLAPIATTR HTStatus HTMLAPI HTDataStoreStringKey(
   HMODULE hModule,
-  const char *key,
-  const char *value,
+  LPCSTR key,
+  LPCSTR value,
   UINT64 valueLen);
 
-HTMLAPIATTR char *HTMLAPI HTDataGetStringKey(
+HTMLAPIATTR LPSTR HTMLAPI HTDataGetStringKey(
   HMODULE hModule,
-  const char *key,
+  LPCSTR key,
   UINT64 *valueLen);
 
 /**
  * Free the pointer returned by HTDataGet().
  */
-HTMLAPIATTR void HTMLAPI HTDataFree(
+HTMLAPIATTR VOID HTMLAPI HTDataFree(
   char *value);
 
 #ifdef __cplusplus
