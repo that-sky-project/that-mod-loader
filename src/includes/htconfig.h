@@ -45,8 +45,6 @@
 // OpenGL3.
 //#define HTML_USE_IMPL_OPENGL3
 
-#define HTML_USE_IMPL_PROXY
-
 // Enable the logger.
 //#define HTML_ENABLE_LOGGER
 
