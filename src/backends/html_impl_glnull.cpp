@@ -91,4 +91,9 @@ int HTi_ImplGLNull_Init() {
   return 1;
 }
 
+const HTiBackendRegister g_register_ImplGLNull{
+  "GLNull",
+  HTi_ImplGLNull_Init
+};
+
 #endif

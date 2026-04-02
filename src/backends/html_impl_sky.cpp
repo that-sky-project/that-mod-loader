@@ -214,4 +214,10 @@ int HTi_ImplSky_Init() {
   return 1;
 }
 
+const HTiBackendRegister g_register_ImplSky{
+  HT_ImplSky_Name,
+  HTi_ImplSky_Init,
+  HTi_ImplSky_ExpectProcess
+};
+
 #endif

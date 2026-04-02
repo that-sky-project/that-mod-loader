@@ -208,4 +208,10 @@ int HTi_ImplMCBE_Init() {
   return 1;
 }
 
+const HTiBackendRegister g_register_ImplMCBE{
+  HT_ImplMCBE_Name,
+  HTi_ImplMCBE_Init,
+  HTi_ImplMCBE_ExpectProcess
+};
+
 #endif

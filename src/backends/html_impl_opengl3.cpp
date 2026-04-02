@@ -186,4 +186,9 @@ int HTi_ImplOpenGL3_Shutdown() {
   return 1;
 }
 
+const HTiBackendRegister g_register_ImplOpenGL3{
+  HT_ImplOpenGL3_Name,
+  HTi_ImplOpenGL3_Init
+};
+
 #endif

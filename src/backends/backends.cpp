@@ -94,17 +94,9 @@ int HTiSetGameProcessName(
 int HTiBackendExpectProcess() {
   int success = 0;
 
-  // Setup all game backends.
-#ifdef HTML_USE_IMPL_SKY
-  // Expect Sky.exe
-  extern int HTi_ImplSky_ExpectProcess();
-  success |= HTi_ImplSky_ExpectProcess();
-#endif
-#ifdef HTML_USE_IMPL_MCBE
-  // Expect Minecraft.Windows.exe
-  extern int HTi_ImplMCBE_ExpectProcess();
-  success |= HTi_ImplMCBE_ExpectProcess();
-#endif
+  for (const HTiBackendRegister *p = HTiBackendRegister::list(); p; p = p->prev)
+    if (p->fnExpectProcess)
+      success |= p->fnExpectProcess();
 
   return success;
 }
@@ -114,29 +106,9 @@ int HTiBackendSetupAll() {
 
   InitializeCriticalSection(&gGraphicInitMutex);
 
-  // Setup all graphic backends.
-#ifdef HTML_USE_IMPL_VKLAYER
-  // Setup vulkan layer.
-  extern int HTi_ImplVkLayer_Init();
-  success |= HTi_ImplVkLayer_Init();
-#endif
-#ifdef HTML_USE_IMPL_OPENGL3
-  // Setup OpenGL3.
-  extern int HTi_ImplOpenGL3_Init();
-  success |= HTi_ImplOpenGL3_Init();
-#endif
-
-  // Setup all game backends.
-#ifdef HTML_USE_IMPL_SKY
-  // Setup Sky:CotL.
-  extern int HTi_ImplSky_Init();
-  success |= HTi_ImplSky_Init();
-#endif
-#ifdef HTML_USE_IMPL_MCBE
-  // Setup Minecraft:Bedrock.
-  extern int HTi_ImplMCBE_Init();
-  success |= HTi_ImplMCBE_Init();
-#endif
+  for (const HTiBackendRegister *p = HTiBackendRegister::list(); p; p = p->prev)
+    if (p->fnInit)
+      success |= p->fnInit();
 
   return success;
 }

@@ -472,6 +472,39 @@ extern char gActiveGameBackendName[32];
 extern char gActiveGLBackendName[32];
 extern std::wstring gGameProcessName;
 
+// Backend registerer.
+class HTiBackendRegister {
+  using PFN_BackendXXExpectProcess = int (*)();
+  using PFN_BackendXXInit = int (*)();
+
+public:
+  HTiBackendRegister(
+    const char *name,
+    PFN_BackendXXInit fnInit,
+    PFN_BackendXXExpectProcess fnExpectProcess = nullptr
+  )
+    : name(name)
+    , fnExpectProcess(fnExpectProcess)
+    , fnInit(fnInit)
+  {
+    prev = list();
+    list() = this;
+  }
+
+  HTiBackendRegister(const HTiBackendRegister &) = delete;
+  HTiBackendRegister &operator=(const HTiBackendRegister &) = delete;
+
+  static const HTiBackendRegister *&list() {
+    static const HTiBackendRegister *p = nullptr;
+    return p;
+  }
+
+  const char *name;
+  const HTiBackendRegister *prev;
+  PFN_BackendXXExpectProcess fnExpectProcess;
+  PFN_BackendXXInit fnInit;
+};
+
 // Set the name of currently active backends.
 // Backends should call these functions after it's actived.
 int HTiSetGameBackendName(

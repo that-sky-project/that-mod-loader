@@ -69,4 +69,10 @@ int HTi_ImplGameNull_Init() {
   return 1;
 }
 
+const HTiBackendRegister g_register_ImplGameNull{
+  "GameNull",
+  HTi_ImplGameNull_Init,
+  HTi_ImplGameNull_ExpectProcess
+};
+
 #endif

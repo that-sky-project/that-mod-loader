@@ -1104,4 +1104,9 @@ int HTi_ImplVkLayer_Init() {
   return 1;
 }
 
+const HTiBackendRegister g_register_ImplVkLayer{
+  HT_ImplVkLayer_Name,
+  HTi_ImplVkLayer_Init
+};
+
 #endif
