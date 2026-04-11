@@ -5,7 +5,7 @@
 // You may use this backend as a template.
 // ----------------------------------------------------------------------------
 
-#include "htinternal.h"
+#include "htinternal.hpp"
 #include "includes/htconfig.h"
 
 //#ifdef USE_IMPL_NULLGAME

@@ -9,7 +9,7 @@
 #include <vector>
 #include <algorithm>
 
-#include "htinternal.h"
+#include "htinternal.hpp"
 
 #define HTiWin32PathSeparator L'\\'
 #define HTiPosixPathSeparator L'/'

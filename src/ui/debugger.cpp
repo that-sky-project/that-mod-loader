@@ -3,7 +3,7 @@
 // ----------------------------------------------------------------------------
 
 #include "includes/htconfig.h"
-#include "htinternal.h"
+#include "htinternal.hpp"
 
 #ifdef HTML_ENABLE_DEBUGGER
 

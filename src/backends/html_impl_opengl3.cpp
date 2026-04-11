@@ -9,8 +9,8 @@
 #include "imgui_impl_opengl3.h"
 
 #include "includes/backends/html_impl_opengl3.h"
-#include "htinternal.h"
 #include "includes/htconfig.h"
+#include "htinternal.hpp"
 
 #ifdef HTML_USE_IMPL_OPENGL3
 

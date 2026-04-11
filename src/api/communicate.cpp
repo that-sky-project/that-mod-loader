@@ -6,7 +6,7 @@
 #include <shared_mutex>
 #include <set>
 #include "includes/htmodloader.h"
-#include "htinternal.h"
+#include "htinternal.hpp"
 
 typedef std::pair<PFN_HTEventCallback, HMODULE> EventCallbackInfo;
 typedef std::set<EventCallbackInfo> EventSet;

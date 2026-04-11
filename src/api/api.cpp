@@ -3,7 +3,7 @@
 // ----------------------------------------------------------------------------
 #include "imgui.h"
 #include "includes/htmodloader.h"
-#include "htinternal.h"
+#include "htinternal.hpp"
 
 static thread_local HTError gLastError = HTError_Success;
 

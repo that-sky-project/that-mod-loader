@@ -8,7 +8,7 @@
 #include "imgui.h"
 #include "imgui_impl_win32.h"
 
-#include "htinternal.h"
+#include "htinternal.hpp"
 #include "includes/htconfig.h"
 
 //#ifdef USE_IMPL_NULLGL

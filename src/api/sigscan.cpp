@@ -4,7 +4,7 @@
 #include <windows.h>
 
 #include "htaliases.h"
-#include "htinternal.h"
+#include "htinternal.hpp"
 #include "includes/htmodloader.h"
 
 /**

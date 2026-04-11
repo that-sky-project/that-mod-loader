@@ -1,7 +1,7 @@
 #include <windows.h>
 #include <stdio.h>
 #include <stdarg.h>
-#include "htinternal.h"
+#include "htinternal.hpp"
 
 static FILE *gLogFile = NULL;
 

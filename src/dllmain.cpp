@@ -9,7 +9,7 @@
 
 #include "proxy/winhttp-proxy.h"
 #include "utils/texts.h"
-#include "htinternal.h"
+#include "htinternal.hpp"
 
 static HMODULE hWinHttp;
 

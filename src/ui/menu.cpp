@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include "imgui.h"
 
-#include "htinternal.h"
+#include "htinternal.hpp"
 
 // Widget widths.
 #define HOTKEY_DISPLAY_WIDTH 120.0

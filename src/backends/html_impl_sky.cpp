@@ -9,7 +9,7 @@
 #include <atomic>
 #include "MinHook.h"
 
-#include "htinternal.h"
+#include "htinternal.hpp"
 #include "includes/backends/html_impl_sky.h"
 #include "includes/htconfig.h"
 

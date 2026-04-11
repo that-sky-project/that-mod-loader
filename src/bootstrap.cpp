@@ -5,7 +5,7 @@
 #include <mutex>
 #include "includes/htmodloader.h"
 #include "utils/texts.h"
-#include "htinternal.h"
+#include "htinternal.hpp"
 
 HTHandle hKeyMenuToggle = nullptr;
 

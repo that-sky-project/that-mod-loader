@@ -7,7 +7,7 @@
 
 #include "includes/htmodloader.h"
 #include "utils/texts.h"
-#include "htinternal.h"
+#include "htinternal.hpp"
 
 static inline i32 parseVersionNumber(
   const char *str,

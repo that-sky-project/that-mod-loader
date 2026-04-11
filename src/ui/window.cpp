@@ -2,7 +2,7 @@
 #include "imgui.h"
 
 #include "utils/texts.h"
-#include "htinternal.h"
+#include "htinternal.hpp"
 
 void HTiWindowMain(bool *show) {
   // Resize window on the first frame.

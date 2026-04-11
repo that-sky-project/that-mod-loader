@@ -6,7 +6,7 @@
 #include <windows.h>
 #include "MinHook.h"
 
-#include "htinternal.h"
+#include "htinternal.hpp"
 #include "includes/backends/html_impl_mcbe.h"
 #include "includes/htconfig.h"
 

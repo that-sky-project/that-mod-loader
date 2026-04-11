@@ -6,6 +6,7 @@ This file contains the changelog of HTModLoader.
 -------------------------------------------------------------------------------
 
 Changes:
+- Renamed `htinternal.h` to `htinternal.hpp`.
 - Refactor backend register system.
 - Removed HTML_USE_IMPL_PROXY.
 
@@ -91,7 +92,7 @@ Changes:
   string.
 - The main menu won't reset its size on every launch of the game.
 - Fixed possible buffer overflow in HTML Console.
-- Formatted all function declarations in htmodloader.h and htinternal.h
+- Formatted all function declarations in htmodloader.h and htinternal.hpp
 - Added HTOptionGetCustom() and HTOptionSetCustom() for mods to save their own options
   and config.
 - Added demo for HTOptionGetCustom() and HTOptionSetCustom().

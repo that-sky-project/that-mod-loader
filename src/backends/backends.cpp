@@ -6,7 +6,7 @@
 #include <mutex>
 #include "imgui.h"
 
-#include "htinternal.h"
+#include "htinternal.hpp"
 #include "includes/htconfig.h"
 
 typedef int (HTMLAPI *PFN_HTiGameEditionCheck)(

@@ -7,7 +7,7 @@
 #include "MinHook.h"
 
 #include "includes/htmodloader.h"
-#include "htinternal.h"
+#include "htinternal.hpp"
 
 static HTMutexShared gMutexAsm;
 static std::map<void *, ModPatch> gPatches;

@@ -1,6 +1,6 @@
 #include <mutex>
 
-#include "htinternal.h"
+#include "htinternal.hpp"
 
 static std::mutex gGameStatusMutex;
 
