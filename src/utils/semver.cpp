@@ -104,10 +104,10 @@ struct SemverCondition {
 namespace {
 
 std::string trim(const std::string &s) {
-  std::size_t start = 0;
+  size_t start = 0;
   while (start < s.size() && std::isspace(static_cast<unsigned char>(s[start])))
     ++start;
-  std::size_t end = s.size();
+  size_t end = s.size();
   while (end > start && std::isspace(static_cast<unsigned char>(s[end - 1])))
     --end;
   return s.substr(start, end - start);
@@ -159,7 +159,7 @@ std::vector<std::string> split(
   char delim
 ) {
   std::vector<std::string> result;
-  std::size_t start = 0, end;
+  size_t start = 0, end;
   while ((end = s.find(delim, start)) != std::string::npos) {
     result.push_back(s.substr(start, end - start));
     start = end + 1;
@@ -169,16 +169,181 @@ std::vector<std::string> split(
   return result;
 }
 
+// Represents a version where any component may be absent or a wildcard
+// (x / X / *). Absent/wild components are stored as -1.
+struct PartialVersion {
+  int major; // -1 = wildcard / absent
+  int minor; // -1 = wildcard / absent
+  int patch; // -1 = wildcard / absent
+  std::vector<std::string> prerelease;
+  std::vector<std::string> build;
+
+  PartialVersion() : major(-1), minor(-1), patch(-1) {}
+
+  bool majorWild() const { return major < 0; }
+  bool minorWild() const { return minor < 0; }
+  bool patchWild() const { return patch < 0; }
+};
+
+// Parse a possibly partial or wildcard version string.
+// Returns false only on a hard syntax error; missing/wild components are -1.
+static bool parsePartialVersion(
+  const std::string &input,
+  bool /*loose*/,
+  PartialVersion &out
+) {
+  out = PartialVersion();
+  std::string s = trim(input);
+  if (s.empty())
+    // Fully wild.
+    return true;
+
+  size_t i = 0;
+
+  // Strip optional leading 'v', 'V', or '='.
+  if (i < s.size() && (s[i] == 'v' || s[i] == 'V' || s[i] == '='))
+    i++;
+  if (i >= s.size())
+    // Just "v" -> fully wild.
+    return true;
+
+  // Parse major.
+  if (s[i] == 'x' || s[i] == 'X' || s[i] == '*')
+    // Wild major -> everything wild.
+    return true;
+  if (!isDigit(s[i]))
+    return false;
+  size_t start = i;
+  while (i < s.size() && isDigit(s[i])) ++i;
+  out.major = std::stoi(s.substr(start, i - start));
+
+  if (i >= s.size() || s[i] != '.')
+    // Only major given.
+    return true;
+  // Consume '.'
+  i++;
+
+  // Parse minor.
+  if (i < s.size() && (s[i] == 'x' || s[i] == 'X' || s[i] == '*'))
+    // Wild minor (and therefore wild patch too).
+    return true;
+  if (i >= s.size() || !isDigit(s[i]))
+    return false;
+  start = i;
+  while (i < s.size() && isDigit(s[i])) ++i;
+  out.minor = std::stoi(s.substr(start, i - start));
+
+  if (i >= s.size() || s[i] != '.')
+    // Major.minor only.
+    return true;
+  // Consume '.'
+  i++;
+
+  // Parse patch
+  if (i < s.size() && (s[i] == 'x' || s[i] == 'X' || s[i] == '*')) {
+    // Consume wildcard char.
+    // Patch stays -1
+    i++;
+    return true;
+  }
+  if (i >= s.size() || !isDigit(s[i]))
+    return false;
+  start = i;
+  while (i < s.size() && isDigit(s[i])) ++i;
+  out.patch = std::stoi(s.substr(start, i - start));
+
+  // Optional prerelease.
+  if (i < s.size() && s[i] == '-') {
+    ++i;
+    size_t preStart = i;
+    while (i < s.size() && s[i] != '+') ++i;
+    std::string preStr = s.substr(preStart, i - preStart);
+    if (preStr.empty()) return false;
+    size_t p = 0;
+    while (p < preStr.size()) {
+      size_t next = preStr.find('.', p);
+      std::string part = preStr.substr(
+        p, next == std::string::npos ? std::string::npos : next - p);
+      if (part.empty()) return false;
+      out.prerelease.push_back(part);
+      if (next == std::string::npos) break;
+      p = next + 1;
+    }
+  }
+
+  // Optional build metadata.
+  if (i < s.size() && s[i] == '+') {
+    i++;
+
+    std::string buildStr = s.substr(i);
+    if (buildStr.empty())
+      return false;
+
+    size_t p = 0;
+    while (p < buildStr.size()) {
+      size_t next = buildStr.find('.', p);
+      std::string part = buildStr.substr(
+        p,
+        next == std::string::npos ? std::string::npos : next - p);
+      if (part.empty())
+        return false;
+
+      out.build.push_back(part);
+      if (next == std::string::npos)
+        break;
+      p = next + 1;
+    }
+  }
+
+  return true;
+}
+
+// Build a GTE condition from a partial version, filling missing parts with 0.
+static SemverCondition makeGTEfromPartial(
+  const PartialVersion &pv,
+  bool inclPre
+) {
+  SemverCondition c;
+  c.op = SemverCondition::OP_GTE;
+  c.major = pv.majorWild() ? 0 : pv.major;
+  c.minor = pv.minorWild() ? 0 : pv.minor;
+  c.patch = pv.patchWild() ? 0 : pv.patch;
+  c.prerelease = pv.prerelease;
+  c.build = pv.build;
+  c.explicitPrerelease = inclPre || !c.prerelease.empty();
+  return c;
+}
+
+// Build a LT condition with the prerelease sentinel "-0".
+//
+// This sentinel is the standard upper-bound marker used by X-ranges, tilde,
+// caret and partial-version comparators.  Any real prerelease identifier
+// ("alpha", "beta", "rc", etc.) is an alphanumeric identifier and therefore
+// sorts *above* the pure-numeric identifier "0", so the boundary
+// LT (major, minor, patch, prerelease=["0"]) correctly excludes every
+// prerelease of that version tuple while still excluding the release itself.
+static SemverCondition makeLTSentinel(
+  int major,
+  int minor,
+  int patch
+) {
+  SemverCondition c;
+  c.op = SemverCondition::OP_LT;
+  c.major = major;
+  c.minor = minor;
+  c.patch = patch;
+  c.prerelease = {"0"};
+  c.explicitPrerelease = true;
+  return c;
+}
+
 } // anonymous namespace
 
 // ----------------------------------------------------------------------------
 // [SECTION] HTiSemVer implementation
 // ----------------------------------------------------------------------------
 
-HTiSemVer::HTiSemVer()
-  : major(0)
-  , minor(0)
-  , patch(0) { }
+HTiSemVer::HTiSemVer(): major(0), minor(0), patch(0) { }
 
 HTiSemVer::HTiSemVer(
   int major,
@@ -209,9 +374,9 @@ bool HTiSemVer::parse(const std::string &input, bool loose) {
       return false;
   }
 
-  std::size_t pos = 0;
+  size_t pos = 0;
 
-  // Parse major
+  // Parse major.
   while (pos < s.size() && isDigit(s[pos]))
     ++pos;
   if (pos == 0)
@@ -219,20 +384,22 @@ bool HTiSemVer::parse(const std::string &input, bool loose) {
   major = std::stoi(s.substr(0, pos));
   if (pos >= s.size() || s[pos] != '.')
     return false;
-  ++pos; // skip '.'
+  // Skip '.'
+  pos++;
 
-  // Parse minor
-  std::size_t start = pos;
+  // Parse minor.
+  size_t start = pos;
   while (pos < s.size() && isDigit(s[pos]))
-    ++pos;
+    pos++;
   if (pos == start)
     return false;
   minor = std::stoi(s.substr(start, pos - start));
   if (pos >= s.size() || s[pos] != '.')
     return false;
-  ++pos; // skip '.'
+  // Skip '.'
+  pos++;
 
-  // Parse patch
+  // Parse patch.
   start = pos;
   while (pos < s.size() && isDigit(s[pos]))
     ++pos;
@@ -246,7 +413,7 @@ bool HTiSemVer::parse(const std::string &input, bool loose) {
   if (pos >= s.size())
     return true;
 
-  // Parse prerelease identifiers
+  // Parse prerelease identifiers.
   if (s[pos] == '-') {
     ++pos;
     start = pos;
@@ -256,20 +423,22 @@ bool HTiSemVer::parse(const std::string &input, bool loose) {
     if (preStr.empty())
       return false;
 
-    std::size_t ppos = 0;
+    size_t ppos = 0;
     while (ppos < preStr.size()) {
-      std::size_t next = preStr.find('.', ppos);
+      size_t next = preStr.find('.', ppos);
       std::string part = preStr.substr(
         ppos,
         (next == std::string::npos) ? std::string::npos : next - ppos);
       if (part.empty())
         return false;
-      // Validate allowed characters
+
+      // Validate allowed characters.
       for (char c : part) {
         if (!isDigit(c) && !isAlpha(c) && c != '-')
           return false;
       }
-      // Numeric identifiers must not have leading zeros (except "0")
+
+      // Numeric identifiers must not have leading zeros (except "0").
       if (isNumericStr(part) && part.size() > 1 && part[0] == '0')
         return false;
       prerelease.push_back(part);
@@ -279,27 +448,31 @@ bool HTiSemVer::parse(const std::string &input, bool loose) {
     }
   }
 
-  // Parse build metadata
+  // Parse build metadata.
   if (pos < s.size() && s[pos] == '+') {
-    ++pos;
+    pos++;
     std::string buildStr = s.substr(pos);
     if (buildStr.empty())
       return false;
-    std::size_t ppos = 0;
+
+    size_t ppos = 0;
     while (ppos < buildStr.size()) {
-      std::size_t next = buildStr.find('.', ppos);
+      size_t next = buildStr.find('.', ppos);
       std::string part = buildStr.substr(
         ppos,
         (next == std::string::npos) ? std::string::npos : next - ppos);
       if (part.empty())
         return false;
+
       for (char c : part) {
         if (!isDigit(c) && !isAlpha(c) && c != '-')
           return false;
       }
       build.push_back(part);
+
       if (next == std::string::npos)
         break;
+
       ppos = next + 1;
     }
   }
@@ -315,7 +488,7 @@ std::string HTiSemVer::write() const {
 
   if (!prerelease.empty()) {
     result += "-";
-    for (std::size_t i = 0; i < prerelease.size(); ++i) {
+    for (size_t i = 0; i < prerelease.size(); ++i) {
       if (i > 0)
         result += ".";
       result += prerelease[i];
@@ -324,7 +497,7 @@ std::string HTiSemVer::write() const {
 
   if (!build.empty()) {
     result += "+";
-    for (std::size_t i = 0; i < build.size(); ++i) {
+    for (size_t i = 0; i < build.size(); ++i) {
       if (i > 0)
         result += ".";
       result += build[i];
@@ -347,8 +520,8 @@ int HTiSemVer::compare(const HTiSemVer &other) const {
   if (hasPre != otherHasPre)
     return hasPre ? -1 : 1;
 
-  std::size_t minSize = std::min(prerelease.size(), other.prerelease.size());
-  for (std::size_t i = 0; i < minSize; ++i) {
+  size_t minSize = std::min(prerelease.size(), other.prerelease.size());
+  for (size_t i = 0; i < minSize; ++i) {
     int cmp = compareIds(prerelease[i], other.prerelease[i]);
     if (cmp != 0)
       return cmp;
@@ -357,7 +530,7 @@ int HTiSemVer::compare(const HTiSemVer &other) const {
   if (prerelease.size() != other.prerelease.size())
     return prerelease.size() > other.prerelease.size() ? 1 : -1;
 
-  // Build metadata does not affect precedence
+  // Build metadata does not affect precedence.
   return 0;
 }
 
@@ -385,61 +558,12 @@ bool HTiSemVer::operator>=(const HTiSemVer &other) const {
   return compare(other) >= 0;
 }
 
-// ----------------------------------------------------------------------------
-// [SECTION] Static helper functions
-// ----------------------------------------------------------------------------
-
 bool HTiSemVer::valid(
   const std::string &v,
   bool loose
 ) {
   HTiSemVer tmp;
   return tmp.parse(v, loose);
-}
-
-std::string HTiSemVer::clean(
-  const std::string &v,
-  bool loose
-) {
-  HTiSemVer tmp;
-  if (tmp.parse(v, loose))
-    return tmp.write();
-  return "";
-}
-
-HTiSemVer HTiSemVer::coerce(
-  const std::string &v,
-  bool includePrerelease,
-  bool rtl
-) {
-
-  std::string s = v;
-  std::size_t pos = 0;
-  while (pos < s.size() && !isDigit(s[pos]))
-    ++pos;
-  if (pos == s.size())
-    return HTiSemVer();
-
-  std::size_t start = pos;
-  while (pos < s.size() && (isDigit(s[pos]) || s[pos] == '.'))
-    ++pos;
-  std::string numPart = s.substr(start, pos - start);
-
-  std::vector<std::string> parts = split(numPart, '.');
-  while (parts.size() < 3)
-    parts.push_back("0");
-  if (parts.size() > 3)
-    parts.resize(3);
-
-  HTiSemVer result;
-  result.major = std::stoi(parts[0]);
-  result.minor = std::stoi(parts[1]);
-  result.patch = std::stoi(parts[2]);
-
-  // Simplified: prerelease extraction not implemented in this version.
-  // If includePrerelease is true, a full implementation would parse tags.
-
-  return result;
 }
 
 // ----------------------------------------------------------------------------
@@ -456,40 +580,38 @@ SemverCondition SemverCondition::parseSingleCondition(
   cond.explicitPrerelease = includePrerelease;
 
   // Detect operator
-  std::size_t pos = 0;
+  size_t pos = 0;
   if (s.compare(0, 2, "<=") == 0) {
     cond.op = SemverCondition::OP_LTE;
     pos = 2;
   } else if (s.compare(0, 2, ">=") == 0) {
     cond.op = SemverCondition::OP_GTE;
     pos = 2;
-  } else if (s[0] == '<') {
+  } else if (!s.empty() && s[0] == '<') {
     cond.op = SemverCondition::OP_LT;
     pos = 1;
-  } else if (s[0] == '>') {
+  } else if (!s.empty() && s[0] == '>') {
     cond.op = SemverCondition::OP_GT;
     pos = 1;
-  } else if (s[0] == '=') {
+  } else if (!s.empty() && s[0] == '=') {
     cond.op = SemverCondition::OP_EQ;
     pos = 1;
   } else {
     cond.op = SemverCondition::OP_EQ;
   }
 
-  std::string verStr = trim(s.substr(pos));
-  HTiSemVer tmp;
-  if (!tmp.parse(verStr, loose)) {
-    // Return a condition that never matches
+  PartialVersion pv;
+  if (!parsePartialVersion(trim(s.substr(pos)), loose, pv) || pv.patchWild()) {
+    // Partial or unparseable version: return a no-match sentinel.
     return cond;
   }
 
-  cond.major = tmp.major;
-  cond.minor = tmp.minor;
-  cond.patch = tmp.patch;
-  cond.prerelease = tmp.prerelease;
-  cond.build = tmp.build;
+  cond.major = pv.major;
+  cond.minor = pv.minor;
+  cond.patch = pv.patch;
+  cond.prerelease = pv.prerelease;
+  cond.build = pv.build;
   cond.explicitPrerelease = includePrerelease || !cond.prerelease.empty();
-
   return cond;
 }
 
@@ -499,50 +621,59 @@ void SemverCondition::expandRangePart(
   bool includePrerelease,
   std::vector<ConditionSet> &outSets
 ) {
-
   std::string s = trim(part);
   if (s.empty())
     return;
 
-  // Handle logical OR (||).
-  std::size_t orPos = s.find("||");
+  // Logical OR ("||").
+  // Recurse on each side.  We scan left-to-right so nested || still works.
+  size_t orPos = s.find("||");
   if (orPos != std::string::npos) {
-    expandRangePart(s.substr(0, orPos), loose, includePrerelease, outSets);
+    expandRangePart(s.substr(0, orPos),  loose, includePrerelease, outSets);
     expandRangePart(s.substr(orPos + 2), loose, includePrerelease, outSets);
     return;
   }
 
-  // Handle hyphen ranges (e.g., "1.2.3 - 2.3.4").
-  std::size_t hyphen = s.find(" - ");
+  // Hyphen range "left - right".
+  // "1.2.3 - 2.3.4"  ->  >=1.2.3  <=2.3.4
+  // "1.2   - 2.3.4"  ->  >=1.2.0  <=2.3.4   (left partial: fill with 0)
+  // "1.2.3 - 2.3"    ->  >=1.2.3  <2.4.0-0  (right partial major.minor)
+  // "1.2.3 - 2"      ->  >=1.2.3  <3.0.0-0  (right partial major only)
+  size_t hyphen = s.find(" - ");
   if (hyphen != std::string::npos) {
-    std::string left = trim(s.substr(0, hyphen));
-    std::string right = trim(s.substr(hyphen + 3));
+    std::string leftStr  = trim(s.substr(0, hyphen));
+    std::string rightStr = trim(s.substr(hyphen + 3));
+
+    PartialVersion pvL, pvR;
+    bool okL = parsePartialVersion(leftStr,  loose, pvL);
+    bool okR = parsePartialVersion(rightStr, loose, pvR);
+
     ConditionSet cs;
 
-    HTiSemVer vLeft;
-    if (vLeft.parse(left, loose)) {
-      SemverCondition c;
-      c.op = OP_GTE;
-      c.major = vLeft.major;
-      c.minor = vLeft.minor;
-      c.patch = vLeft.patch;
-      c.prerelease = vLeft.prerelease;
-      c.build = vLeft.build;
-      c.explicitPrerelease = includePrerelease || !vLeft.prerelease.empty();
-      cs.push_back(c);
-    }
+    // Left side: always GTE; fill any wildcards with 0
+    if (okL && !pvL.majorWild())
+      cs.push_back(makeGTEfromPartial(pvL, includePrerelease));
 
-    HTiSemVer vRight;
-    if (vRight.parse(right, loose)) {
-      SemverCondition c;
-      c.op = OP_LTE;
-      c.major = vRight.major;
-      c.minor = vRight.minor;
-      c.patch = vRight.patch;
-      c.prerelease = vRight.prerelease;
-      c.build = vRight.build;
-      c.explicitPrerelease = includePrerelease || !vRight.prerelease.empty();
-      cs.push_back(c);
+    // Right side:
+    if (okR && !pvR.majorWild()) {
+      if (!pvR.patchWild()) {
+        // Fully-specified right side -> <=right
+        SemverCondition hi;
+        hi.op    = OP_LTE;
+        hi.major = pvR.major;
+        hi.minor = pvR.minor;
+        hi.patch = pvR.patch;
+        hi.prerelease = pvR.prerelease;
+        hi.build      = pvR.build;
+        hi.explicitPrerelease = includePrerelease || !hi.prerelease.empty();
+        cs.push_back(hi);
+      } else if (!pvR.minorWild()) {
+        // major.minor only -> <major.(minor+1).0-0
+        cs.push_back(makeLTSentinel(pvR.major, pvR.minor + 1, 0));
+      } else {
+        // major only -> <(major+1).0.0-0
+        cs.push_back(makeLTSentinel(pvR.major + 1, 0, 0));
+      }
     }
 
     if (!cs.empty())
@@ -551,110 +682,210 @@ void SemverCondition::expandRangePart(
     return;
   }
 
-  // Split by spaces to form an AND set.
+  // Whitespace-separated comparators (AND set).
   ConditionSet cs;
   std::istringstream iss(s);
   std::string token;
+
   while (iss >> token) {
+
+    // Tilde range ~partial
+    // ~M.N.P  ->  >=M.N.P  <M.(N+1).0-0
+    // ~M.N    ->  >=M.N.0  <M.(N+1).0-0   (same as 1.2.x)
+    // ~M      ->  >=M.0.0  <(M+1).0.0-0   (same as M.x)
     if (token[0] == '~') {
-      // Tilde range: allows patch-level changes.
-      std::string verStr = token.substr(1);
-      HTiSemVer base;
-      if (!base.parse(verStr, loose))
+      PartialVersion pv;
+      if (!parsePartialVersion(token.substr(1), loose, pv))
         continue;
 
-      SemverCondition low = base;
-      low.op = OP_GTE;
-      low.prerelease = base.prerelease;
-      low.explicitPrerelease = includePrerelease || !low.prerelease.empty();
-      cs.push_back(low);
-
-      SemverCondition high;
-      high.op = OP_LT;
-      if (base.minor != 0 || base.patch != 0) {
-        high.major = base.major;
-        high.minor = base.minor + 1;
-        high.patch = 0;
-      } else {
-        high.major = base.major + 1;
-        high.minor = 0;
-        high.patch = 0;
+      if (pv.majorWild()) {
+        // ~* -> >=0.0.0
+        SemverCondition lo;
+        lo.op = OP_GTE;
+        lo.major = 0; lo.minor = 0; lo.patch = 0;
+        lo.explicitPrerelease = includePrerelease;
+        cs.push_back(lo);
+        continue;
       }
-      high.explicitPrerelease = false;
-      cs.push_back(high);
-    } else if (token[0] == '^') {
-      // Caret range: allows non-breaking changes.
-      std::string verStr = token.substr(1);
-      HTiSemVer base;
-      if (!base.parse(verStr, loose))
+
+      // Lower bound: >=M.N.P (missing parts filled with 0)
+      cs.push_back(makeGTEfromPartial(pv, includePrerelease));
+
+      // Upper bound:
+      if (pv.minorWild()) {
+        // ~M -> <(M+1).0.0-0
+        cs.push_back(makeLTSentinel(pv.major + 1, 0, 0));
+      } else {
+        // ~M.N or ~M.N.P -> <M.(N+1).0-0
+        cs.push_back(makeLTSentinel(pv.major, pv.minor + 1, 0));
+      }
+      continue;
+    }
+
+    // Caret range ^partial
+    // Locks the left-most non-zero, non-wild element.
+    //
+    // All specified:
+    //   ^M.N.P (M>0)  ->  >=M.N.P  <(M+1).0.0-0
+    //   ^0.N.P (N>0)  ->  >=0.N.P  <0.(N+1).0-0
+    //   ^0.0.P        ->  >=0.0.P  <0.0.(P+1)-0
+    //
+    // Patch wild:
+    //   ^M.N.x (M>0)  ->  >=M.N.0  <(M+1).0.0-0
+    //   ^0.N.x        ->  >=0.N.0  <0.(N+1).0-0
+    //   ^0.0.x / ^0.0 ->  >=0.0.0  <0.1.0-0
+    //
+    // Minor+patch wild:
+    //   ^M.x / ^M     ->  >=M.0.0  <(M+1).0.0-0
+    //   ^0.x / ^0     ->  >=0.0.0  <1.0.0-0
+    if (token[0] == '^') {
+      PartialVersion pv;
+      if (!parsePartialVersion(token.substr(1), loose, pv))
         continue;
 
-      SemverCondition low;
-      low.op = OP_GTE;
-      low.major = base.major;
-      low.minor = base.minor;
-      low.patch = base.patch;
-      low.prerelease = base.prerelease;
-      low.explicitPrerelease = includePrerelease || !low.prerelease.empty();
-      cs.push_back(low);
-
-      SemverCondition high;
-      high.op = OP_LT;
-      if (base.major > 0) {
-        high.major = base.major + 1;
-        high.minor = 0;
-        high.patch = 0;
-      } else if (base.minor > 0) {
-        high.major = 0;
-        high.minor = base.minor + 1;
-        high.patch = 0;
-      } else {
-        high.major = 0;
-        high.minor = 0;
-        high.patch = base.patch + 1;
-      }
-      high.explicitPrerelease = false;
-      cs.push_back(high);
-    } else if (token.find_first_of("xX*") != std::string::npos) {
-      // X-range (wildcard)
-      std::string lower = token;
-      for (char &c: lower)
-        if (c == 'x' || c == 'X' || c == '*')
-          c = '0';
-      HTiSemVer base;
-      if (!base.parse(lower, loose))
+      if (pv.majorWild()) {
+        // ^* -> >=0.0.0
+        SemverCondition lo;
+        lo.op = OP_GTE;
+        lo.major = 0; lo.minor = 0; lo.patch = 0;
+        lo.explicitPrerelease = includePrerelease;
+        cs.push_back(lo);
         continue;
-
-      SemverCondition low;
-      low.op = OP_GTE;
-      low.major = base.major;
-      low.minor = base.minor;
-      low.patch = base.patch;
-      low.prerelease = base.prerelease;
-      low.explicitPrerelease = includePrerelease || !low.prerelease.empty();
-      cs.push_back(low);
-
-      SemverCondition high;
-      high.op = OP_LT;
-      if (token.find('.') == std::string::npos) {
-        high.major = base.major + 1;
-        high.minor = 0;
-        high.patch = 0;
-      } else if (token.find('.', token.find('.') + 1) == std::string::npos) {
-        high.major = base.major;
-        high.minor = base.minor + 1;
-        high.patch = 0;
-      } else {
-        high.major = base.major;
-        high.minor = base.minor;
-        high.patch = base.patch + 1;
       }
-      high.explicitPrerelease = false;
-      cs.push_back(high);
-    } else {
-      // Plain comparator.
-      SemverCondition cond = parseSingleCondition(token, loose, includePrerelease);
+
+      int maj = pv.major;
+      int min = pv.minorWild() ? 0 : pv.minor;
+      int pat = pv.patchWild() ? 0 : pv.patch;
+
+      // Lower bound
+      SemverCondition lo;
+      lo.op    = OP_GTE;
+      lo.major = maj; lo.minor = min; lo.patch = pat;
+      lo.prerelease = pv.prerelease;
+      lo.build      = pv.build;
+      lo.explicitPrerelease = includePrerelease || !lo.prerelease.empty();
+      cs.push_back(lo);
+
+      // Upper bound
+      if (pv.minorWild()) {
+        // ^M.x or ^M
+        cs.push_back(makeLTSentinel(maj + 1, 0, 0));
+      } else if (pv.patchWild()) {
+        // ^M.N.x
+        if (maj > 0)
+          cs.push_back(makeLTSentinel(maj + 1, 0, 0));
+        else
+          cs.push_back(makeLTSentinel(0, min + 1, 0));
+      } else {
+        // All parts specified
+        if (maj > 0)
+          cs.push_back(makeLTSentinel(maj + 1, 0, 0));
+        else if (min > 0)
+          cs.push_back(makeLTSentinel(0, min + 1, 0));
+        else
+          cs.push_back(makeLTSentinel(0, 0, pat + 1));
+      }
+      continue;
+    }
+
+    // Primitive comparator or bare version.
+    // Detect optional leading operator.
+    size_t pos = 0;
+    Op op = OP_EQ;
+    if (token.size() >= 2 && token.compare(0, 2, "<=") == 0) {
+      op = OP_LTE; pos = 2;
+    } else if (token.size() >= 2 && token.compare(0, 2, ">=") == 0) {
+      op = OP_GTE; pos = 2;
+    } else if (token[0] == '<') {
+      op = OP_LT; pos = 1;
+    } else if (token[0] == '>') {
+      op = OP_GT; pos = 1;
+    } else if (token[0] == '=') {
+      op = OP_EQ; pos = 1;
+    }
+
+    PartialVersion pv;
+    if (!parsePartialVersion(trim(token.substr(pos)), loose, pv))
+      continue;
+
+    // Bare wildcard ("*", "", "=*", etc.) -> >=0.0.0
+    if (pv.majorWild()) {
+      SemverCondition lo;
+      lo.op = OP_GTE;
+      lo.major = 0; lo.minor = 0; lo.patch = 0;
+      lo.explicitPrerelease = includePrerelease;
+      cs.push_back(lo);
+      continue;
+    }
+
+    bool partial = pv.minorWild() || pv.patchWild();
+
+    if (!partial) {
+      // Full version: emit comparator literally
+      SemverCondition cond;
+      cond.op    = op;
+      cond.major = pv.major; cond.minor = pv.minor; cond.patch = pv.patch;
+      cond.prerelease = pv.prerelease;
+      cond.build      = pv.build;
+      cond.explicitPrerelease = includePrerelease || !cond.prerelease.empty();
       cs.push_back(cond);
+
+    } else {
+      // Partial version: desugar per operator.
+      int maj = pv.major;
+      int min = pv.minorWild() ? 0 : pv.minor;
+
+      switch (op) {
+        case OP_EQ: {
+          // Treat bare partial as X-range.
+          // "1"   -> >=1.0.0 <2.0.0-0
+          // "1.2" -> >=1.2.0 <1.3.0-0
+          cs.push_back(makeGTEfromPartial(pv, includePrerelease));
+          if (pv.minorWild())
+            cs.push_back(makeLTSentinel(maj + 1, 0, 0));
+          else
+            cs.push_back(makeLTSentinel(maj, min + 1, 0));
+          break;
+        }
+        case OP_GT: {
+          // ">M"   -> ">=(M+1).0.0"
+          // ">M.N" -> ">=M.(N+1).0"
+          SemverCondition lo;
+          lo.op = OP_GTE;
+          lo.prerelease = {};
+          lo.explicitPrerelease = includePrerelease;
+          if (pv.minorWild()) {
+            lo.major = maj + 1; lo.minor = 0; lo.patch = 0;
+          } else {
+            lo.major = maj; lo.minor = min + 1; lo.patch = 0;
+          }
+          cs.push_back(lo);
+          break;
+        }
+        case OP_GTE: {
+          // ">=M" -> ">=M.0.0"  ">=M.N" -> ">=M.N.0"
+          cs.push_back(makeGTEfromPartial(pv, includePrerelease));
+          break;
+        }
+        case OP_LT: {
+          // "<M"   -> "<M.0.0-0"
+          // "<M.N" -> "<M.N.0-0"
+          if (pv.minorWild())
+            cs.push_back(makeLTSentinel(maj, 0, 0));
+          else
+            cs.push_back(makeLTSentinel(maj, min, 0));
+          break;
+        }
+        case OP_LTE: {
+          // "<=M"   -> "<(M+1).0.0-0"
+          // "<=M.N" -> "<M.(N+1).0-0"
+          if (pv.minorWild())
+            cs.push_back(makeLTSentinel(maj + 1, 0, 0));
+          else
+            cs.push_back(makeLTSentinel(maj, min + 1, 0));
+          break;
+        }
+      }
     }
   }
 
