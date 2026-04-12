@@ -79,129 +79,101 @@ static inline bool validateDllPath(
  * Helper function for get string value with cJSON.
  */
 static inline std::string getStringValueFrom(
-  cJSON *json,
+  const cJSON *json,
   const char *key
 ) {
   char *s = cJSON_GetStringValue(cJSON_GetObjectItemCaseSensitive(json, key));
   return s ? s : "";
 }
 
-/**
- * Deserialize the manifest file.
- */
-static i32 deserializeManifestJson(
-  const char *buffer,
-  ModManifest *manifest
+bool ModManifest::read(
+  const cJSON *json
 ) {
-  const wchar_t *manifestPath = manifest->paths.json.c_str();
-  i32 ret = 0;
-  cJSON *json;
-  char *parsedStr = nullptr;
-  std::string version;
-  std::wstring dllPathOrigin;
-  double editionFlag;
-
+  const wchar_t *manifestPath = paths.json.c_str();
   (void)manifestPath;
 
-  json = cJSON_Parse(buffer);
-  if (!json) {
-    LOGW("Invalid manifest.json of: %ls\n", manifestPath);
-    goto Err;
-  }
-
   // Get package name.
-  manifest->meta.packageName = getStringValueFrom(json, "package_name");
-  if (
-    manifest->meta.packageName.empty()
-    || !validatePackageName(manifest->meta.packageName)
-  ) {
+  meta.packageName = getStringValueFrom(json, "package_name");
+  if (meta.packageName.empty() || !validatePackageName(meta.packageName)) {
     LOGW(
       "Invalid package name \"%s\" in: %ls\n",
-      manifest->meta.packageName.c_str(),
+      meta.packageName.c_str(),
       manifestPath);
-    goto Err;
+    return false;
   }
 
   // Get dll path from manifest.
-  parsedStr = cJSON_GetStringValue(cJSON_GetObjectItemCaseSensitive(json, "main"));
+  const char *parsedStr = cJSON_GetStringValue(cJSON_GetObjectItemCaseSensitive(json, "main"));
   if (!parsedStr) {
     LOGW("Missing dll path of: %ls\n", manifestPath);
-    goto Err;
+    return false;
   }
 
-  // Dll path must not be a relative path.
-  dllPathOrigin = HTiUtf8ToWstring(parsedStr);
+  // Dll path must not be an absolute path.
+  std::wstring dllPathOrigin = HTiUtf8ToWstring(parsedStr);
   if (HTiPathIsAbsolute(dllPathOrigin))
     goto InvalidDllPath;
 
   // Dll must be located in `mods/` folder.
-  manifest->paths.dll = HTiPathJoin({
-    manifest->paths.folder,
-    dllPathOrigin});
-  if (!validateDllPath(manifest->paths.dll)) {
+  paths.dll = HTiPathJoin({paths.folder, dllPathOrigin});
+  if (!validateDllPath(paths.dll)) {
 InvalidDllPath:
     LOGW("Invalid dll path of: %ls\n", manifestPath);
-    goto Err;
+    return false;
   }
 
   // Get mod version.
-  version = getStringValueFrom(json, "version");
-  if (!parseVersionNumber(version.data(), manifest->meta.version)) {
+  std::string version = getStringValueFrom(json, "version");
+  if (!meta.version.read(version)) {
     LOGW("Invalid mod version of: %ls\n", manifestPath);
-    goto Err;
+    return false;
   }
 
   // Get compatible game edition of the mod.
-  editionFlag = cJSON_GetNumberValue(cJSON_GetObjectItemCaseSensitive(json, "game_edition"));
+  f64 editionFlag = cJSON_GetNumberValue(cJSON_GetObjectItemCaseSensitive(json, "game_edition"));
   if (std::isnan(editionFlag)) {
     // Invalid game edition.
     LOGW("Invalid game edition of: %ls\n", manifestPath);
-    goto Err;
+    return false;
   }
-  manifest->gameEditionFlags = (i32)editionFlag;
+  gameEditionFlags = (i32)editionFlag;
 
   // Get display info.
-  manifest->modName = getStringValueFrom(json, "mod_name");
-  manifest->description = getStringValueFrom(json, "description");
-  manifest->author = getStringValueFrom(json, "author");
+  modName = getStringValueFrom(json, "mod_name");
+  description = getStringValueFrom(json, "description");
+  author = getStringValueFrom(json, "author");
 
-  ret = 1;
-
-Err:
-  cJSON_Delete(json);
-  return ret;
+  return true;
 }
 
-/**
- * Parse manifest.json to get the basic data of a mod, and check file integrity
- * of the mod.
- */
-static i32 parseModManifest(
-  const wchar_t *fileName,
-  ModManifest *manifest
+bool ModManifest::readFromFile(
+  const std::wstring &modFolderName
 ) {
-  i32 ret;
   std::wstring folder(gPathModsWide);
 
   // Get the mod folder.
-  folder = HTiPathJoin({folder, fileName});
+  folder = HTiPathJoin({folder, modFolderName});
 
   // Check the manifest.json.
   std::wstring jsonPath = HTiPathJoin({folder, L"\\manifest.json"});
   if (!HTiFileExists(jsonPath.data()))
-    return 0;
+    return false;
 
   // Save paths.
-  manifest->paths.folder = folder;
-  manifest->paths.json = jsonPath;
+  paths.folder = folder;
+  paths.json = jsonPath;
 
   // Open manifest.json.
   std::string content = HTiReadFileAsUtf8(jsonPath);
 
   // Parse and deserialize the file.
-  ret = deserializeManifestJson(
-    content.data(),
-    manifest);
+  cJSON *json = cJSON_Parse(content.c_str());
+  if (!json)
+    return false;
+
+  bool ret = read(json);
+
+  cJSON_Delete(json);
 
   return ret;
 }
@@ -212,7 +184,6 @@ static i32 parseModManifest(
 static void scanMods() {
   HANDLE hFindFile;
   WIN32_FIND_DATAW findData;
-  ModManifest manifest;
   std::wstring modsFolderPath(gPathModsWide);
 
   LOGI("Scanning mods...\n");
@@ -230,7 +201,8 @@ static void scanMods() {
 
     LOGI("Found potential mod folder: %ls\n", findData.cFileName);
 
-    if (!parseModManifest(findData.cFileName, &manifest))
+    ModManifest manifest;
+    if (!manifest.readFromFile(findData.cFileName))
       continue;
     if (!HTiFileExists(manifest.paths.dll.data()))
       continue;

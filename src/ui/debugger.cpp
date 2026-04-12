@@ -25,11 +25,7 @@ static void renderMods() {
     ImGui::Text(it.first.c_str());
     ImGui::BulletText("Dll folder: %ls", mod.paths.folder.c_str());
     ImGui::BulletText("Dll path: %ls", mod.paths.dll.c_str());
-    ImGui::BulletText(
-      "Version: %u.%u.%u",
-      mod.meta.version[0],
-      mod.meta.version[1],
-      mod.meta.version[2]);
+    ImGui::BulletText("Version: %s", mod.meta.version.write().c_str());
 
     if (mod.gameEditionFlags == (i32)HT_ImplNull_EditionAll)
       ImGui::BulletText("Compatible game id: <Any>");
