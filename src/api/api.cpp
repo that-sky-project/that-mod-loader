@@ -133,7 +133,7 @@ HTMLAPIATTR UINT32 HTMLAPI HTGetModInfoFrom(
       break;
     case HTModInfoFields_Folder:
       size = (manifest->paths.folder.length() + 1) * sizeof(wchar_t);
-      result = (void *)manifest->meta.packageName.c_str();
+      result = (void *)manifest->paths.folder.c_str();
       break;
     default:
       return HTiErrAndRet(HTError_InvalidParam, 0);

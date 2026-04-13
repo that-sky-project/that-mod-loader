@@ -6,6 +6,7 @@ This file contains the changelog of HTModLoader.
 -------------------------------------------------------------------------------
 
 Changes:
+- Fixed the issue where getting the mod directory actually returned the mod name.
 - Fixed an error when parsing version wildcards (by AI).
 - Refactored ModManifest with the latest SemVer.
 - Added npm-like SemVer support.
