@@ -347,14 +347,14 @@ HTMLAPIATTR UINT32 HTMLAPI HTPathResolve(
 
 HTMLAPIATTR UINT32 HTMLAPI HTPathRelative(
   LPWSTR result,
-  LPCWSTR path1,
-  LPCWSTR path2,
+  LPCWSTR src,
+  LPCWSTR dest,
   UINT32 maxLen
 ) {
-  if (!path1 || !path2)
+  if (!src || !dest)
     return 0;
 
-  std::wstring relative = HTiPathRelative(path1, path2);
+  std::wstring relative = HTiPathRelative(src, dest);
 
   return copyOrReturn(
     result,

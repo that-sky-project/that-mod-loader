@@ -303,7 +303,7 @@ HTMLAPIATTR UINT32 HTMLAPI HTPathResolve(
   UINT32 maxLen);
 
 /**
- * Returns the relative path from `from` to `to` based on the current working
+ * Returns the relative path from `src` to `dest` based on the current working
  * directory. If from and to each resolve to the same path (after calling
  * `HTiPathResolve()` on each), a zero-length string is returned.
  * 
@@ -312,8 +312,8 @@ HTMLAPIATTR UINT32 HTMLAPI HTPathResolve(
  */
 HTMLAPIATTR UINT32 HTMLAPI HTPathRelative(
   LPWSTR result,
-  LPCWSTR path1,
-  LPCWSTR path2,
+  LPCWSTR src,
+  LPCWSTR dest,
   UINT32 maxLen);
 
 /**
